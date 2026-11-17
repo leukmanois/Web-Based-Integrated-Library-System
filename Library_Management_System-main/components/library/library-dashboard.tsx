@@ -130,11 +130,11 @@ export function LibraryDashboard() {
   }
 
   // Transaction operations
-  const handleBorrow = async (bookId: number, patronId: number) => {
+  const handleBorrow = async (bookId: number, patronId: number, durationDays: number) => {
     const res = await fetch("/api/transactions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "borrow", bookId, patronId }),
+      body: JSON.stringify({ action: "borrow", bookId, patronId, durationDays }),
     })
     const result = await res.json()
     toast({

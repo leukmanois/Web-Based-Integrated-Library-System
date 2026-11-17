@@ -7,17 +7,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { ArrowLeftRight, BookOpen, UserCheck } from "lucide-react"
+import { BORROW_DURATION_DAYS, DEFAULT_BORROW_DURATION_DAYS } from "@/lib/types"
 
 interface TransactionPanelProps {
   books: Book[]
   patrons: Patron[]
-  onBorrow: (bookId: number, patronId: number) => Promise<void>
+  onBorrow: (bookId: number, patronId: number, durationDays: number) => Promise<void>
   onReturn: (bookId: number, patronId: number) => Promise<void>
 }
 
 export function TransactionPanel({ books, patrons, onBorrow, onReturn }: TransactionPanelProps) {
   const [borrowPatronId, setBorrowPatronId] = useState<string>("")
   const [borrowBookId, setBorrowBookId] = useState<string>("")
+  const [borrowDurationDays, setBorrowDurationDays] = useState<string>(DEFAULT_BORROW_DURATION_DAYS.toString())
   const [returnPatronId, setReturnPatronId] = useState<string>("")
   const [returnBookId, setReturnBookId] = useState<string>("")
   const [borrowLoading, setBorrowLoading] = useState(false)
@@ -33,9 +35,10 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
     if (!borrowBookId || !borrowPatronId) return
     setBorrowLoading(true)
     try {
-      await onBorrow(parseInt(borrowBookId), parseInt(borrowPatronId))
+      await onBorrow(parseInt(borrowBookId), parseInt(borrowPatronId), parseInt(borrowDurationDays))
       setBorrowBookId("")
       setBorrowPatronId("")
+      setBorrowDurationDays(DEFAULT_BORROW_DURATION_DAYS.toString())
     } finally {
       setBorrowLoading(false)
     }
@@ -98,6 +101,21 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
                     </SelectItem>
                   ))
                 )}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Loan Duration</Label>
+            <Select value={borrowDurationDays} onValueChange={setBorrowDurationDays}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose a loan duration" />
+              </SelectTrigger>
+              <SelectContent>
+                {BORROW_DURATION_DAYS.map((days) => (
+                  <SelectItem key={days} value={days.toString()}>
+                    {days} days
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
