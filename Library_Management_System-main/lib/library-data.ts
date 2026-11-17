@@ -1,10 +1,30 @@
 import { promises as fs } from "fs"
 import path from "path"
-import type { Book, Patron, LibraryStats } from "./types"
+import { DEFAULT_BORROW_DURATION_DAYS, type Book, type BorrowDurationDays, type Patron, type LibraryStats } from "./types"
 
 const DATA_DIR = path.join(process.cwd(), "data")
 const BOOKS_FILE = path.join(DATA_DIR, "books.json")
 const PATRONS_FILE = path.join(DATA_DIR, "patrons.json")
+function calculateDueReturnDate(
+  borrowedDate: string | null,
+  durationDays: BorrowDurationDays = DEFAULT_BORROW_DURATION_DAYS,
+): string | null {
+  if (!borrowedDate) return null
+
+  const [year, month, day] = borrowedDate.slice(0, 10).split("-").map(Number)
+  const date = new Date(Date.UTC(year, month - 1, day))
+  if (
+    !Number.isFinite(date.getTime()) ||
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null
+  }
+
+  date.setUTCDate(date.getUTCDate() + durationDays)
+  return date.toISOString().slice(0, 10)
+}
 
 // Ensure data directory exists
 async function ensureDataDir() {
@@ -19,21 +39,33 @@ async function ensureDataDir() {
 
 export async function loadBooks(): Promise<Book[]> {
   await ensureDataDir()
+  let storedBooks: Book[]
   try {
     const content = await fs.readFile(BOOKS_FILE, "utf-8")
-    return JSON.parse(content)
+    storedBooks = JSON.parse(content)
   } catch {
     // Return default books if file doesn't exist
     const defaultBooks: Book[] = [
-      { id: 1, title: "To Kill a Mockingbird", author: "Harper Lee", year: 1960, status: "Available", borrowed_date: null },
-      { id: 2, title: "1984", author: "George Orwell", year: 1949, status: "Available", borrowed_date: null },
-      { id: 3, title: "Pride and Prejudice", author: "Jane Austen", year: 1813, status: "Checked Out", borrowed_date: "2026-03-15 10:30:00" },
-      { id: 4, title: "The Great Gatsby", author: "F. Scott Fitzgerald", year: 1925, status: "Available", borrowed_date: null },
-      { id: 5, title: "One Hundred Years of Solitude", author: "Gabriel Garcia Marquez", year: 1967, status: "Available", borrowed_date: null },
+      { id: 1, title: "To Kill a Mockingbird", author: "Harper Lee", year: 1960, status: "Available", borrowed_date: null, due_return_date: null },
+      { id: 2, title: "1984", author: "George Orwell", year: 1949, status: "Available", borrowed_date: null, due_return_date: null },
+      { id: 3, title: "Pride and Prejudice", author: "Jane Austen", year: 1813, status: "Checked Out", borrowed_date: "2026-03-15 10:30:00", due_return_date: "2026-03-29" },
+      { id: 4, title: "The Great Gatsby", author: "F. Scott Fitzgerald", year: 1925, status: "Available", borrowed_date: null, due_return_date: null },
+      { id: 5, title: "One Hundred Years of Solitude", author: "Gabriel Garcia Marquez", year: 1967, status: "Available", borrowed_date: null, due_return_date: null },
     ]
     await saveBooks(defaultBooks)
     return defaultBooks
   }
+
+  const needsMigration = storedBooks.some((book) => !("due_return_date" in book))
+  const books = storedBooks.map((book) => ({
+    ...book,
+    due_return_date: book.status === "Checked Out"
+      ? book.due_return_date ?? calculateDueReturnDate(book.borrowed_date)
+      : null,
+  }))
+
+  if (needsMigration) await saveBooks(books)
+  return books
 }
 
 export async function saveBooks(books: Book[]): Promise<void> {
@@ -49,7 +81,7 @@ export async function getBookById(id: number): Promise<Book | undefined> {
 export async function addBook(title: string, author: string, year: number): Promise<{ success: boolean; message: string; book?: Book }> {
   const books = await loadBooks()
   const newId = books.length > 0 ? Math.max(...books.map((b) => b.id)) + 1 : 1
-  const newBook: Book = { id: newId, title, author, year, status: "Available", borrowed_date: null }
+  const newBook: Book = { id: newId, title, author, year, status: "Available", borrowed_date: null, due_return_date: null }
   books.push(newBook)
   await saveBooks(books)
   return { success: true, message: `Book "${title}" added successfully with ID ${newId}.`, book: newBook }
@@ -140,7 +172,11 @@ export async function deletePatron(id: number): Promise<{ success: boolean; mess
 
 // ==================== LIBRARY OPERATIONS ====================
 
-export async function borrowBook(bookId: number, patronId: number): Promise<{ success: boolean; message: string }> {
+export async function borrowBook(
+  bookId: number,
+  patronId: number,
+  durationDays: BorrowDurationDays = DEFAULT_BORROW_DURATION_DAYS,
+): Promise<{ success: boolean; message: string }> {
   const books = await loadBooks()
   const patrons = await loadPatrons()
   
@@ -154,6 +190,7 @@ export async function borrowBook(bookId: number, patronId: number): Promise<{ su
   
   book.status = "Checked Out"
   book.borrowed_date = new Date().toISOString().replace("T", " ").slice(0, 19)
+  book.due_return_date = calculateDueReturnDate(book.borrowed_date, durationDays)
   patron.books_checked_out.push(bookId)
   
   await saveBooks(books)
@@ -175,6 +212,7 @@ export async function returnBook(bookId: number, patronId: number): Promise<{ su
   
   book.status = "Available"
   book.borrowed_date = null
+  book.due_return_date = null
   patron.books_checked_out = patron.books_checked_out.filter((id) => id !== bookId)
   
   await saveBooks(books)
@@ -204,8 +242,18 @@ export async function getStatistics(): Promise<LibraryStats> {
 
 export async function exportBooksToCSV(): Promise<string> {
   const books = await loadBooks()
-  const headers = ["ID", "Title", "Author", "Year", "Status", "Borrowed Date"]
-  const rows = books.map((b) => [b.id, `"${b.title}"`, `"${b.author}"`, b.year, b.status, b.borrowed_date || "N/A"])
+  const today = new Date().toISOString().slice(0, 10)
+  const headers = ["ID", "Title", "Author", "Year", "Status", "Borrowed Date", "Due Return Date", "Overdue Status"]
+  const rows = books.map((b) => [
+    b.id,
+    `"${b.title}"`,
+    `"${b.author}"`,
+    b.year,
+    b.status,
+    b.borrowed_date || "N/A",
+    b.due_return_date || "N/A",
+    b.status !== "Checked Out" ? "N/A" : b.due_return_date && b.due_return_date < today ? "Overdue" : "On time",
+  ])
   return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
 }
 
