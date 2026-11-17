@@ -25,9 +25,13 @@ export function PatronTable({ patrons, books, onEdit, onDelete }: PatronTablePro
 
   const filteredPatrons = patrons
     .filter((patron) => {
+      const searchTerm = search.toLowerCase()
       return (
-        patron.name.toLowerCase().includes(search.toLowerCase()) ||
-        patron.id.toString().includes(search)
+        patron.name.toLowerCase().includes(searchTerm) ||
+        patron.id.toString().includes(searchTerm) ||
+        patron.books_checked_out.some((bookId) =>
+          books.find((book) => book.id === bookId)?.title.toLowerCase().includes(searchTerm)
+        )
       )
     })
     .sort((a, b) => {
@@ -61,7 +65,7 @@ export function PatronTable({ patrons, books, onEdit, onDelete }: PatronTablePro
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search by name or ID..."
+          placeholder="Search by patron name, ID, or book title..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
