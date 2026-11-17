@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { Book } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,12 +44,13 @@ export function BookForm({ book, open, onClose, onSubmit }: BookFormProps) {
     }
   }
 
-  // Reset form when book changes
-  useState(() => {
+  useEffect(() => {
+    if (!open) return
+
     setTitle(book?.title || "")
     setAuthor(book?.author || "")
     setYear(book?.year?.toString() || "")
-  })
+  }, [book, open])
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

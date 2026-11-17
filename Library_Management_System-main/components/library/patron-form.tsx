@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { Patron } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -40,10 +40,11 @@ export function PatronForm({ patron, open, onClose, onSubmit }: PatronFormProps)
     }
   }
 
-  // Reset form when patron changes
-  useState(() => {
+  useEffect(() => {
+    if (!open) return
+
     setName(patron?.name || "")
-  })
+  }, [patron, open])
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
