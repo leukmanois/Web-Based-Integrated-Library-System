@@ -1,11 +1,9 @@
 import { pbkdf2Sync, timingSafeEqual, createHmac } from "crypto"
-import { promises as fs } from "fs"
-import path from "path"
 import { NextResponse } from "next/server"
+import adminsData from "@/data/admins.json"
 
 const SESSION_COOKIE = "library_admin_session"
 export const SESSION_MAX_AGE = 60 * 60 * 8
-const ADMIN_FILE = path.join(process.cwd(), "data", "admins.json")
 
 type AdminCredential = {
   id: string
@@ -20,6 +18,10 @@ function sessionSecret() {
     throw new Error("LIBRARY_SESSION_SECRET must be configured before admin authentication can be used.")
   }
   return secret
+}
+
+export function hasSessionSecret() {
+  return Boolean(process.env.LIBRARY_SESSION_SECRET)
 }
 
 function sign(payload: string) {
@@ -68,7 +70,7 @@ export function unauthorizedResponse() {
 }
 
 export async function verifyAdminCredentials(id: string, password: string) {
-  const admins = JSON.parse(await fs.readFile(ADMIN_FILE, "utf8")) as AdminCredential[]
+  const admins = adminsData as AdminCredential[]
   const admin = admins.find((entry) => entry.id === id)
   const salt = admin?.salt ?? "0".repeat(32)
   const expectedHash = admin?.passwordHash ?? "0".repeat(64)
