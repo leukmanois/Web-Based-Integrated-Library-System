@@ -19,8 +19,9 @@ export function AdminLoginForm() {
     setIsSubmitting(true)
 
     const formData = new FormData(event.currentTarget)
+    let response: Response
     try {
-      const response = await fetch("/api/auth/login", {
+      response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -28,20 +29,27 @@ export function AdminLoginForm() {
           password: formData.get("password"),
         }),
       })
-      const result = await response.json()
-
-      if (!response.ok) {
-        setError(result.message || "Unable to sign in. Please try again.")
-        return
-      }
-
-      router.replace("/")
-      router.refresh()
     } catch {
       setError("Unable to reach the sign-in service. Please try again.")
-    } finally {
       setIsSubmitting(false)
+      return
     }
+
+    const result: unknown = await response.json().catch(() => null)
+    const resultMessage =
+      result && typeof result === "object" && "message" in result && typeof result.message === "string"
+        ? result.message
+        : null
+
+    if (!response.ok) {
+      setError(resultMessage || `Sign-in service returned an error (${response.status}). Please try again later.`)
+      setIsSubmitting(false)
+      return
+    }
+
+    router.replace("/")
+    router.refresh()
+    setIsSubmitting(false)
   }
 
   return (
