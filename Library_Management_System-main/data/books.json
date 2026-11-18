@@ -1,41 +1,37 @@
 [
   {
-    "id": 1,
-    "title": "To Kill a Mockingbird",
-    "author": "Harper Lee",
+    "id": 101,
+    "title": "Programming Languages: Principles and Practices (3rd Philippine Edition)",
+    "author": "Kenneth C. Louden & Kenneth A. Lambert",
+    "genre": "Information Technology",
+    "year": 2012,
+    "status": "Available",
+    "borrowed_date": null
+  },
+  {
+    "id": 201,
+    "title": "Prentice Hall Trigonometry",
+    "author": "Thurman S. Peterson",
+    "genre": "Mathematics",
     "year": 1960,
     "status": "Available",
     "borrowed_date": null
   },
   {
-    "id": 2,
-    "title": "1984",
-    "author": "George Orwell",
-    "year": 1949,
+    "id": 202,
+    "title": "Business Mathematics (10th Edition)",
+    "author": "L. D. Brooks, D. R. Peterson, L. M. Petraglia, & M. G. Curran Jr.",
+    "genre": "Mathematics",
+    "year": 1987,
     "status": "Available",
     "borrowed_date": null
   },
   {
-    "id": 3,
-    "title": "Pride and Prejudice",
-    "author": "Jane Austen",
-    "year": 1813,
-    "status": "Checked Out",
-    "borrowed_date": "2026-03-15 10:30:00"
-  },
-  {
-    "id": 4,
-    "title": "The Great Gatsby",
-    "author": "F. Scott Fitzgerald",
-    "year": 1925,
-    "status": "Available",
-    "borrowed_date": null
-  },
-  {
-    "id": 5,
-    "title": "One Hundred Years of Solitude",
-    "author": "Gabriel Garcia Marquez",
-    "year": 1967,
+    "id": 102,
+    "title": "Software Engineering (9th Edition)",
+    "author": "Ian Sommerville",
+    "genre": "Information Technology",
+    "year": 2010,
     "status": "Available",
     "borrowed_date": null
   }

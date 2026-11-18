@@ -1,0 +1,14 @@
+[
+  {
+    "id": "admin1",
+    "salt": "4309fafd894c27eb06caffce5628ec64",
+    "passwordHash": "bd8822d68d01d12d96ddea4edd634c1fb23ffddb631e8d902e4b09c87bbdd3be",
+    "iterations": 310000
+  },
+  {
+    "id": "admin2",
+    "salt": "eeca8cdb538b91fe8e2618fdefb99d78",
+    "passwordHash": "69dcc73945ef4537dc6e3eea4a6845edfdcbeee463f1ad5e86c62b40031379de",
+    "iterations": 310000
+  }
+]
