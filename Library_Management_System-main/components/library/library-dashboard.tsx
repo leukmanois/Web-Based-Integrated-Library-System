@@ -108,7 +108,7 @@ export function LibraryDashboard() {
     const result = await res.json()
     const isDuplicate = res.status === 409
     toast({
-      title: result.success ? "Success" : isDuplicate ? "Book already exists" : "Error",
+      title: result.success ? "Success" : isDuplicate ? "Patron already exists" : "Error",
       description: result.message,
       variant: result.success || isDuplicate ? "default" : "destructive",
       className: isDuplicate
