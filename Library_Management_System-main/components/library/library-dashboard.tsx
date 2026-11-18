@@ -52,11 +52,16 @@ export function LibraryDashboard() {
       body: JSON.stringify(data),
     })
     const result = await res.json()
+    const isDuplicate = res.status === 409
     toast({
-      title: result.success ? "Success" : "Error",
+      title: result.success ? "Success" : isDuplicate ? "Book already exists" : "Error",
       description: result.message,
-      variant: result.success ? "default" : "destructive",
+      variant: result.success || isDuplicate ? "default" : "destructive",
+      className: isDuplicate
+        ? "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100"
+        : undefined,
     })
+
     if (result.success) refreshData()
     return result.success
   }
@@ -68,10 +73,14 @@ export function LibraryDashboard() {
       body: JSON.stringify(data),
     })
     const result = await res.json()
+    const isDuplicate = res.status === 409
     toast({
-      title: result.success ? "Success" : "Error",
+      title: result.success ? "Success" : isDuplicate ? "Book already exists" : "Error",
       description: result.message,
-      variant: result.success ? "default" : "destructive",
+      variant: result.success || isDuplicate ? "default" : "destructive",
+      className: isDuplicate
+        ? "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100"
+        : undefined,
     })
     if (result.success) refreshData()
     return result.success
@@ -97,10 +106,14 @@ export function LibraryDashboard() {
       body: JSON.stringify(data),
     })
     const result = await res.json()
+    const isDuplicate = res.status === 409
     toast({
-      title: result.success ? "Success" : "Error",
+      title: result.success ? "Success" : isDuplicate ? "Book already exists" : "Error",
       description: result.message,
-      variant: result.success ? "default" : "destructive",
+      variant: result.success || isDuplicate ? "default" : "destructive",
+      className: isDuplicate
+        ? "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100"
+        : undefined,
     })
     if (result.success) refreshData()
     return result.success
