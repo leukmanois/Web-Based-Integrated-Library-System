@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 import { exportBooksToCSV, exportPatronsToCSV } from "@/lib/library-data"
+import { isAuthenticatedRequest, unauthorizedResponse } from "@/lib/auth"
 
 export async function GET(request: Request) {
+  if (!isAuthenticatedRequest(request)) return unauthorizedResponse()
   const { searchParams } = new URL(request.url)
   const type = searchParams.get("type")
   

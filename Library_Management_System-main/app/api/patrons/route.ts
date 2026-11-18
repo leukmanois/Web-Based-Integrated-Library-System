@@ -1,24 +1,28 @@
 import { NextResponse } from "next/server"
 import { loadPatrons, addPatron, updatePatron, deletePatron } from "@/lib/library-data"
+import { isAuthenticatedRequest, unauthorizedResponse } from "@/lib/auth"
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!isAuthenticatedRequest(request)) return unauthorizedResponse()
   const patrons = await loadPatrons()
   return NextResponse.json(patrons)
 }
 
 export async function POST(request: Request) {
+  if (!isAuthenticatedRequest(request)) return unauthorizedResponse()
   const body = await request.json()
-  const { name } = body
+  const { id, name } = body
   
-  if (!name) {
-    return NextResponse.json({ success: false, message: "Name is required." }, { status: 400 })
+  if (!Number.isInteger(Number(id)) || Number(id) < 1 || !name) {
+    return NextResponse.json({ success: false, message: "A positive whole-number ID and name are required." }, { status: 400 })
   }
   
-  const result = await addPatron(name)
-  return NextResponse.json(result, { status: result.success ? 201 : 400 })
+  const result = await addPatron(Number(id), name)
+  return NextResponse.json(result, { status: result.success ? 201 : 409 })
 }
 
 export async function PUT(request: Request) {
+  if (!isAuthenticatedRequest(request)) return unauthorizedResponse()
   const body = await request.json()
   const { id, name } = body
   
@@ -31,6 +35,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (!isAuthenticatedRequest(request)) return unauthorizedResponse()
   const { searchParams } = new URL(request.url)
   const id = searchParams.get("id")
   

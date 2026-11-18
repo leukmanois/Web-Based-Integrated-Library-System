@@ -7,8 +7,8 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'Library Management System',
-  description: 'A modern web-based library management system for managing books, patrons, and transactions',
+  title: 'LIBRCS: Library Information Book Resources Catalog System',
+  description: 'LIBRCS is a library information system for managing books, patrons, and transactions.',
   generator: 'v0.app',
   icons: {
     icon: [
