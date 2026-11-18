@@ -1,7 +1,17 @@
 import { NextResponse } from "next/server"
-import { createSessionToken, SESSION_COOKIE, SESSION_MAX_AGE, verifyAdminCredentials } from "@/lib/auth"
+import { createSessionToken, hasSessionSecret, SESSION_COOKIE, SESSION_MAX_AGE, verifyAdminCredentials } from "@/lib/auth"
 
 export async function POST(request: Request) {
+  if (!hasSessionSecret()) {
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Admin sign-in is not configured. Add LIBRARY_SESSION_SECRET to the Vercel project environment variables, then redeploy.",
+      },
+      { status: 503 },
+    )
+  }
+
   const body = await request.json().catch(() => null)
   const id = body && typeof body.id === "string" ? body.id.trim() : ""
   const password = body && typeof body.password === "string" ? body.password : ""
