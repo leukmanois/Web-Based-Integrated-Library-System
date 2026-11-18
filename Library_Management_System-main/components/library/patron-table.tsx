@@ -25,13 +25,9 @@ export function PatronTable({ patrons, books, onEdit, onDelete }: PatronTablePro
 
   const filteredPatrons = patrons
     .filter((patron) => {
-      const searchTerm = search.toLowerCase()
       return (
-        patron.name.toLowerCase().includes(searchTerm) ||
-        patron.id.toString().includes(searchTerm) ||
-        patron.books_checked_out.some((bookId) =>
-          books.find((book) => book.id === bookId)?.title.toLowerCase().includes(searchTerm)
-        )
+        patron.name.toLowerCase().includes(search.toLowerCase()) ||
+        patron.id.toString().includes(search)
       )
     })
     .sort((a, b) => {
@@ -65,7 +61,7 @@ export function PatronTable({ patrons, books, onEdit, onDelete }: PatronTablePro
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search by patron name, ID, or book title..."
+          placeholder="Search by name or ID..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -102,7 +98,7 @@ export function PatronTable({ patrons, books, onEdit, onDelete }: PatronTablePro
                   <TableCell className="font-medium">{patron.id}</TableCell>
                   <TableCell className="font-medium">{patron.name}</TableCell>
                   <TableCell>
-                    <Badge variant={patron.books_checked_out.length > 0 ? "secondary" : "outline"} className={patron.books_checked_out.length > 0 ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}>
+                    <Badge variant={patron.books_checked_out.length > 0 ? "secondary" : "outline"} className={patron.books_checked_out.length > 0 ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}>
                       {patron.books_checked_out.length}
                     </Badge>
                   </TableCell>

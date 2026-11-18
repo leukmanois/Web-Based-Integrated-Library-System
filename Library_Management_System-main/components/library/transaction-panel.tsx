@@ -4,23 +4,25 @@ import { useState } from "react"
 import type { Book, Patron } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeftRight, BookOpen, UserCheck } from "lucide-react"
-import { BORROW_DURATION_DAYS, DEFAULT_BORROW_DURATION_DAYS } from "@/lib/types"
+import { SearchablePicker, type SearchablePickerOption } from "./searchable-picker"
 
 interface TransactionPanelProps {
   books: Book[]
   patrons: Patron[]
-  onBorrow: (bookId: number, patronId: number, durationDays: number) => Promise<void>
-  onReturn: (bookId: number, patronId: number) => Promise<void>
+  onBorrow: (bookId: number, patronId: number) => Promise<boolean>
+  onReturn: (bookId: number, patronId: number) => Promise<boolean>
 }
 
 export function TransactionPanel({ books, patrons, onBorrow, onReturn }: TransactionPanelProps) {
   const [borrowPatronId, setBorrowPatronId] = useState<string>("")
+  const [borrowPatronQuery, setBorrowPatronQuery] = useState("")
   const [borrowBookId, setBorrowBookId] = useState<string>("")
-  const [borrowDurationDays, setBorrowDurationDays] = useState<string>(DEFAULT_BORROW_DURATION_DAYS.toString())
+  const [borrowBookQuery, setBorrowBookQuery] = useState("")
   const [returnPatronId, setReturnPatronId] = useState<string>("")
+  const [returnPatronQuery, setReturnPatronQuery] = useState("")
   const [returnBookId, setReturnBookId] = useState<string>("")
   const [borrowLoading, setBorrowLoading] = useState(false)
   const [returnLoading, setReturnLoading] = useState(false)
@@ -31,14 +33,32 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
     ? books.filter((b) => selectedPatronForReturn.books_checked_out.includes(b.id))
     : []
 
+  const patronOptions = (items: Patron[]): SearchablePickerOption[] =>
+    items.map((patron) => ({
+      value: patron.id.toString(),
+      label: patron.name,
+      detail: `Patron ID: ${patron.id}`,
+      searchText: patron.name,
+    }))
+
+  const availableBookOptions: SearchablePickerOption[] = availableBooks.map((book) => ({
+    value: book.id.toString(),
+    label: book.title,
+    detail: `${book.genre} · ID: ${book.id} · ${book.author}`,
+    searchText: `${book.title} ${book.genre} ${book.id} ${book.author}`,
+  }))
+
   const handleBorrow = async () => {
     if (!borrowBookId || !borrowPatronId) return
     setBorrowLoading(true)
     try {
-      await onBorrow(parseInt(borrowBookId), parseInt(borrowPatronId), parseInt(borrowDurationDays))
-      setBorrowBookId("")
-      setBorrowPatronId("")
-      setBorrowDurationDays(DEFAULT_BORROW_DURATION_DAYS.toString())
+      const succeeded = await onBorrow(Number(borrowBookId), Number(borrowPatronId))
+      if (succeeded) {
+        setBorrowBookId("")
+        setBorrowBookQuery("")
+        setBorrowPatronId("")
+        setBorrowPatronQuery("")
+      }
     } finally {
       setBorrowLoading(false)
     }
@@ -48,9 +68,12 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
     if (!returnBookId || !returnPatronId) return
     setReturnLoading(true)
     try {
-      await onReturn(parseInt(returnBookId), parseInt(returnPatronId))
-      setReturnBookId("")
-      setReturnPatronId("")
+      const succeeded = await onReturn(Number(returnBookId), Number(returnPatronId))
+      if (succeeded) {
+        setReturnBookId("")
+        setReturnPatronId("")
+        setReturnPatronQuery("")
+      }
     } finally {
       setReturnLoading(false)
     }
@@ -68,61 +91,32 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
           <CardDescription>Check out a book for a patron</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Select Patron</Label>
-            <Select value={borrowPatronId} onValueChange={setBorrowPatronId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a patron" />
-              </SelectTrigger>
-              <SelectContent>
-                {patrons.map((patron) => (
-                  <SelectItem key={patron.id} value={patron.id.toString()}>
-                    {patron.name} (ID: {patron.id})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Select Available Book</Label>
-            <Select value={borrowBookId} onValueChange={setBorrowBookId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a book" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableBooks.length === 0 ? (
-                  <SelectItem value="none" disabled>
-                    No books available
-                  </SelectItem>
-                ) : (
-                  availableBooks.map((book) => (
-                    <SelectItem key={book.id} value={book.id.toString()}>
-                      {book.title} by {book.author}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Loan Duration</Label>
-            <Select value={borrowDurationDays} onValueChange={setBorrowDurationDays}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a loan duration" />
-              </SelectTrigger>
-              <SelectContent>
-                {BORROW_DURATION_DAYS.map((days) => (
-                  <SelectItem key={days} value={days.toString()}>
-                    {days} days
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <SearchablePicker
+            id="borrow-patron"
+            label="Patron"
+            placeholder="Type a patron name"
+            query={borrowPatronQuery}
+            selectedValue={borrowPatronId}
+            options={patronOptions(patrons)}
+            emptyMessage="No matching patrons."
+            onQueryChange={setBorrowPatronQuery}
+            onSelect={(value) => setBorrowPatronId(value)}
+          />
+          <SearchablePicker
+            id="borrow-book"
+            label="Available book"
+            placeholder="Search title, genre, or ID"
+            query={borrowBookQuery}
+            selectedValue={borrowBookId}
+            options={availableBookOptions}
+            emptyMessage={availableBooks.length ? "No matching available books." : "No books are currently available."}
+            onQueryChange={setBorrowBookQuery}
+            onSelect={(value) => setBorrowBookId(value)}
+          />
           <Button
             onClick={handleBorrow}
             disabled={!borrowBookId || !borrowPatronId || borrowLoading}
-            className="w-full"
+            className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
           >
             <ArrowLeftRight className="mr-2 h-4 w-4" />
             {borrowLoading ? "Processing..." : "Borrow Book"}
@@ -140,39 +134,25 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
           <CardDescription>Return a book from a patron</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <SearchablePicker
+            id="return-patron"
+            label="Patron"
+            placeholder="Type a patron name"
+            query={returnPatronQuery}
+            selectedValue={returnPatronId}
+            options={patronOptions(patrons.filter((patron) => patron.books_checked_out.length > 0))}
+            emptyMessage="No matching patrons with books to return."
+            onQueryChange={setReturnPatronQuery}
+            onSelect={(value) => {
+              setReturnPatronId(value)
+              setReturnBookId("")
+            }}
+          />
           <div className="space-y-2">
-            <Label>Select Patron</Label>
-            <Select
-              value={returnPatronId}
-              onValueChange={(value) => {
-                setReturnPatronId(value)
-                setReturnBookId("")
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a patron" />
-              </SelectTrigger>
-              <SelectContent>
-                {patrons
-                  .filter((p) => p.books_checked_out.length > 0)
-                  .map((patron) => (
-                    <SelectItem key={patron.id} value={patron.id.toString()}>
-                      {patron.name} ({patron.books_checked_out.length} book(s))
-                    </SelectItem>
-                  ))}
-                {patrons.filter((p) => p.books_checked_out.length > 0).length === 0 && (
-                  <SelectItem value="none" disabled>
-                    No patrons have borrowed books
-                  </SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Select Book to Return</Label>
+            <Label>Select book to return</Label>
             <Select value={returnBookId} onValueChange={setReturnBookId} disabled={!returnPatronId}>
               <SelectTrigger>
-                <SelectValue placeholder="Choose a book" />
+                <SelectValue placeholder="Choose a checked-out book" />
               </SelectTrigger>
               <SelectContent>
                 {booksToReturn.length === 0 ? (
@@ -192,7 +172,7 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
           <Button
             onClick={handleReturn}
             disabled={!returnBookId || !returnPatronId || returnLoading}
-            className="w-full"
+            className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
           >
             <ArrowLeftRight className="mr-2 h-4 w-4" />
             {returnLoading ? "Processing..." : "Return Book"}

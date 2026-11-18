@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import type { Book } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,28 +11,31 @@ interface BookFormProps {
   book?: Book | null
   open: boolean
   onClose: () => void
-  onSubmit: (data: { title: string; author: string; year: number; id?: number }) => Promise<void>
+  onSubmit: (data: { id: number; title: string; author: string; genre: string; year: number }) => Promise<boolean>
 }
 
 export function BookForm({ book, open, onClose, onSubmit }: BookFormProps) {
+  const [id, setId] = useState(book?.id?.toString() || "")
   const [title, setTitle] = useState(book?.title || "")
   const [author, setAuthor] = useState(book?.author || "")
+  const [genre, setGenre] = useState(book?.genre || "")
   const [year, setYear] = useState(book?.year?.toString() || "")
   const [loading, setLoading] = useState(false)
 
   const isEdit = !!book
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     try {
-      await onSubmit({
+      const saved = await onSubmit({
+        id: Number(id),
         title,
         author,
+        genre,
         year: parseInt(year),
-        ...(isEdit && { id: book.id }),
       })
-      onClose()
+      if (saved) onClose()
     } finally {
       setLoading(false)
     }
@@ -45,10 +48,10 @@ export function BookForm({ book, open, onClose, onSubmit }: BookFormProps) {
   }
 
   useEffect(() => {
-    if (!open) return
-
+    setId(book?.id?.toString() || "")
     setTitle(book?.title || "")
     setAuthor(book?.author || "")
+    setGenre(book?.genre || "")
     setYear(book?.year?.toString() || "")
   }, [book, open])
 
@@ -63,12 +66,36 @@ export function BookForm({ book, open, onClose, onSubmit }: BookFormProps) {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
+            <Label htmlFor="book-id">Book ID</Label>
+            <Input
+              id="book-id"
+              type="number"
+              min="1"
+              step="1"
+              value={id}
+              onChange={(e) => setId(e.target.value)}
+              placeholder="Enter a unique book ID"
+              readOnly={isEdit}
+              required
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter book title"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="genre">Genre</Label>
+            <Input
+              id="genre"
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+              placeholder="Enter book genre"
               required
             />
           </div>

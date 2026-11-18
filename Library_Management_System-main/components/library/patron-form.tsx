@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import type { Patron } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,24 +11,25 @@ interface PatronFormProps {
   patron?: Patron | null
   open: boolean
   onClose: () => void
-  onSubmit: (data: { name: string; id?: number }) => Promise<void>
+  onSubmit: (data: { id: number; name: string }) => Promise<boolean>
 }
 
 export function PatronForm({ patron, open, onClose, onSubmit }: PatronFormProps) {
+  const [id, setId] = useState(patron?.id?.toString() || "")
   const [name, setName] = useState(patron?.name || "")
   const [loading, setLoading] = useState(false)
 
   const isEdit = !!patron
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
     try {
-      await onSubmit({
+      const saved = await onSubmit({
+        id: Number(id),
         name,
-        ...(isEdit && { id: patron.id }),
       })
-      onClose()
+      if (saved) onClose()
     } finally {
       setLoading(false)
     }
@@ -41,8 +42,7 @@ export function PatronForm({ patron, open, onClose, onSubmit }: PatronFormProps)
   }
 
   useEffect(() => {
-    if (!open) return
-
+    setId(patron?.id?.toString() || "")
     setName(patron?.name || "")
   }, [patron, open])
 
@@ -56,6 +56,20 @@ export function PatronForm({ patron, open, onClose, onSubmit }: PatronFormProps)
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="patron-id">Patron ID</Label>
+            <Input
+              id="patron-id"
+              type="number"
+              min="1"
+              step="1"
+              value={id}
+              onChange={(e) => setId(e.target.value)}
+              placeholder="Enter a unique patron ID"
+              readOnly={isEdit}
+              required
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
             <Input

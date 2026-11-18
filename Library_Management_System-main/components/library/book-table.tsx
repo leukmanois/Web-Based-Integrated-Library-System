@@ -14,7 +14,7 @@ interface BookTableProps {
   onDelete: (book: Book) => void
 }
 
-type SortField = "id" | "title" | "author" | "year" | "status"
+type SortField = "id" | "title" | "author" | "genre" | "year" | "status"
 type SortDirection = "asc" | "desc"
 
 export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
@@ -28,6 +28,7 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
       const matchesSearch =
         book.title.toLowerCase().includes(search.toLowerCase()) ||
         book.author.toLowerCase().includes(search.toLowerCase()) ||
+        book.genre.toLowerCase().includes(search.toLowerCase()) ||
         book.id.toString().includes(search)
       const matchesStatus = statusFilter === "all" || book.status === statusFilter
       return matchesSearch && matchesStatus
@@ -38,6 +39,7 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
       else if (sortField === "year") comparison = a.year - b.year
       else if (sortField === "title") comparison = a.title.localeCompare(b.title)
       else if (sortField === "author") comparison = a.author.localeCompare(b.author)
+      else if (sortField === "genre") comparison = a.genre.localeCompare(b.genre)
       else if (sortField === "status") comparison = a.status.localeCompare(b.status)
       return sortDirection === "asc" ? comparison : -comparison
     })
@@ -62,7 +64,7 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search by title, author, or ID..."
+            placeholder="Search by title, author, genre, or ID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -106,6 +108,9 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
               <TableHead className="cursor-pointer" onClick={() => handleSort("author")}>
                 <div className="flex items-center gap-1">Author <SortIcon field="author" /></div>
               </TableHead>
+              <TableHead className="cursor-pointer" onClick={() => handleSort("genre")}>
+                <div className="flex items-center gap-1">Genre <SortIcon field="genre" /></div>
+              </TableHead>
               <TableHead className="cursor-pointer" onClick={() => handleSort("year")}>
                 <div className="flex items-center gap-1">Year <SortIcon field="year" /></div>
               </TableHead>
@@ -119,7 +124,7 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
           <TableBody>
             {filteredBooks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                   No books found.
                 </TableCell>
               </TableRow>
@@ -129,6 +134,7 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
                   <TableCell className="font-medium">{book.id}</TableCell>
                   <TableCell className="font-medium">{book.title}</TableCell>
                   <TableCell>{book.author}</TableCell>
+                  <TableCell>{book.genre}</TableCell>
                   <TableCell>{book.year}</TableCell>
                   <TableCell>
                     <Badge variant={book.status === "Available" ? "default" : "secondary"} className={book.status === "Available" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-amber-600 hover:bg-amber-700 text-white"}>
