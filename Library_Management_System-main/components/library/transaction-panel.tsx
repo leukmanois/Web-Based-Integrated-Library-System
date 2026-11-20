@@ -17,6 +17,8 @@ interface TransactionPanelProps {
 }
 
 export function TransactionPanel({ books, patrons, onBorrow, onReturn }: TransactionPanelProps) {
+  const safeBooks = Array.isArray(books) ? books : []
+  const safePatrons = Array.isArray(patrons) ? patrons : []
   const [borrowPatronId, setBorrowPatronId] = useState<string>("")
   const [borrowPatronQuery, setBorrowPatronQuery] = useState("")
   const [borrowBookId, setBorrowBookId] = useState<string>("")
@@ -27,10 +29,10 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
   const [borrowLoading, setBorrowLoading] = useState(false)
   const [returnLoading, setReturnLoading] = useState(false)
 
-  const availableBooks = books.filter((b) => b.status === "Available")
-  const selectedPatronForReturn = patrons.find((p) => p.id.toString() === returnPatronId)
+  const availableBooks = safeBooks.filter((b) => b.status === "Available")
+  const selectedPatronForReturn = safePatrons.find((p) => p.id.toString() === returnPatronId)
   const booksToReturn = selectedPatronForReturn
-    ? books.filter((b) => selectedPatronForReturn.books_checked_out.includes(b.id))
+    ? safeBooks.filter((b) => selectedPatronForReturn.books_checked_out.includes(b.id))
     : []
 
   const patronOptions = (items: Patron[]): SearchablePickerOption[] =>
@@ -97,7 +99,7 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
             placeholder="Type a patron name"
             query={borrowPatronQuery}
             selectedValue={borrowPatronId}
-            options={patronOptions(patrons)}
+            options={patronOptions(safePatrons)}
             emptyMessage="No matching patrons."
             onQueryChange={setBorrowPatronQuery}
             onSelect={(value) => setBorrowPatronId(value)}
@@ -140,7 +142,7 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
             placeholder="Type a patron name"
             query={returnPatronQuery}
             selectedValue={returnPatronId}
-            options={patronOptions(patrons.filter((patron) => patron.books_checked_out.length > 0))}
+            options={patronOptions(safePatrons.filter((patron) => patron.books_checked_out.length > 0))}
             emptyMessage="No matching patrons with books to return."
             onQueryChange={setReturnPatronQuery}
             onSelect={(value) => {

@@ -19,11 +19,13 @@ type SortField = "id" | "name" | "books"
 type SortDirection = "asc" | "desc"
 
 export function PatronTable({ patrons, books, onEdit, onDelete }: PatronTableProps) {
+  const safePatrons = Array.isArray(patrons) ? patrons : []
+  const safeBooks = Array.isArray(books) ? books : []
   const [search, setSearch] = useState("")
   const [sortField, setSortField] = useState<SortField>("id")
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
 
-  const filteredPatrons = patrons
+  const filteredPatrons = safePatrons
     .filter((patron) => {
       return (
         patron.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -48,7 +50,7 @@ export function PatronTable({ patrons, books, onEdit, onDelete }: PatronTablePro
   }
 
   const getBookTitles = (bookIds: number[]) => {
-    return bookIds.map((id) => books.find((b) => b.id === id)?.title || `Book #${id}`).join(", ")
+    return bookIds.map((id) => safeBooks.find((b) => b.id === id)?.title || `Book #${id}`).join(", ")
   }
 
   const SortIcon = ({ field }: { field: SortField }) => {

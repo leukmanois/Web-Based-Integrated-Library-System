@@ -1,231 +1,201 @@
-import { promises as fs } from "fs"
-import path from "path"
 import type { Book, Patron, LibraryStats } from "./types"
-
-const DATA_DIR = path.join(process.cwd(), "data")
-const BOOKS_FILE = path.join(DATA_DIR, "books.json")
-const PATRONS_FILE = path.join(DATA_DIR, "patrons.json")
-
-// Ensure data directory exists
-async function ensureDataDir() {
-  try {
-    await fs.access(DATA_DIR)
-  } catch {
-    await fs.mkdir(DATA_DIR, { recursive: true })
-  }
-}
-
-// ==================== BOOKS ====================
+import { ensureDatabaseSchema, sql } from "./database"
 
 export async function loadBooks(): Promise<Book[]> {
-  await ensureDataDir()
-  try {
-    const content = await fs.readFile(BOOKS_FILE, "utf-8")
-    const books = JSON.parse(content) as Book[]
-    return books.map((book) => ({ ...book, genre: book.genre || "Uncategorized" }))
-  } catch {
-    // Return default books if file doesn't exist
-    const defaultBooks: Book[] = [
-      { id: 1, title: "To Kill a Mockingbird", author: "Harper Lee", genre: "Classic Fiction", year: 1960, status: "Available", borrowed_date: null },
-      { id: 2, title: "1984", author: "George Orwell", genre: "Dystopian Fiction", year: 1949, status: "Available", borrowed_date: null },
-      { id: 3, title: "Pride and Prejudice", author: "Jane Austen", genre: "Romance", year: 1813, status: "Checked Out", borrowed_date: "2026-03-15 10:30:00" },
-      { id: 4, title: "The Great Gatsby", author: "F. Scott Fitzgerald", genre: "Classic Fiction", year: 1925, status: "Available", borrowed_date: null },
-      { id: 5, title: "One Hundred Years of Solitude", author: "Gabriel Garcia Marquez", genre: "Magical Realism", year: 1967, status: "Available", borrowed_date: null },
-    ]
-    await saveBooks(defaultBooks)
-    return defaultBooks
-  }
-}
-
-export async function saveBooks(books: Book[]): Promise<void> {
-  await ensureDataDir()
-  await fs.writeFile(BOOKS_FILE, JSON.stringify(books, null, 2), "utf-8")
+  await ensureDatabaseSchema()
+  const rows = await sql`
+    SELECT id, title, author, genre, year, status, borrowed_date
+    FROM books
+    ORDER BY id
+  `
+  return rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    author: row.author,
+    genre: row.genre || "Uncategorized",
+    year: row.year,
+    status: row.status,
+    borrowed_date: row.borrowed_date,
+  })) as Book[]
 }
 
 export async function getBookById(id: number): Promise<Book | undefined> {
-  const books = await loadBooks()
-  return books.find((b) => b.id === id)
+  await ensureDatabaseSchema()
+  const rows = await sql`
+    SELECT id, title, author, genre, year, status, borrowed_date
+    FROM books
+    WHERE id = ${id}
+  `
+  return rows[0] as Book | undefined
 }
 
 export async function addBook(id: number, title: string, author: string, year: number, genre: string): Promise<{ success: boolean; message: string; book?: Book }> {
-  const books = await loadBooks()
+  await ensureDatabaseSchema()
   if (!Number.isInteger(id) || id < 1) {
     return { success: false, message: "Book ID must be a positive whole number." }
   }
-  if (books.some((book) => book.id === id)) {
+  const existing = await sql`SELECT id FROM books WHERE id = ${id}`
+  if (existing.length > 0) {
     return { success: false, message: `Book ID ${id} is already in use.` }
   }
-
-  const newBook: Book = { id, title, author, genre, year, status: "Available", borrowed_date: null }
-  books.push(newBook)
-  await saveBooks(books)
-  return { success: true, message: `Book "${title}" added successfully with ID ${id}.`, book: newBook }
+  const [book] = await sql`
+    INSERT INTO books (id, title, author, genre, year, status, borrowed_date)
+    VALUES (${id}, ${title}, ${author}, ${genre}, ${year}, 'Available', NULL)
+    RETURNING id, title, author, genre, year, status, borrowed_date
+  `
+  return { success: true, message: `Book "${title}" added successfully with ID ${id}.`, book: book as Book }
 }
 
 export async function updateBook(id: number, updates: Partial<Pick<Book, "title" | "author" | "genre" | "year">>): Promise<{ success: boolean; message: string }> {
-  const books = await loadBooks()
-  const index = books.findIndex((b) => b.id === id)
-  if (index === -1) return { success: false, message: `Book with ID ${id} not found.` }
-  
-  if (updates.title) books[index].title = updates.title
-  if (updates.author) books[index].author = updates.author
-  if (updates.genre) books[index].genre = updates.genre
-  if (updates.year) books[index].year = updates.year
-  
-  await saveBooks(books)
+  await ensureDatabaseSchema()
+  const existing = await sql`SELECT id FROM books WHERE id = ${id}`
+  if (existing.length === 0) return { success: false, message: `Book with ID ${id} not found.` }
+  await sql`
+    UPDATE books
+    SET title = COALESCE(${updates.title ?? null}, title),
+        author = COALESCE(${updates.author ?? null}, author),
+        genre = COALESCE(${updates.genre ?? null}, genre),
+        year = COALESCE(${updates.year ?? null}, year)
+    WHERE id = ${id}
+  `
   return { success: true, message: `Book ID ${id} updated successfully.` }
 }
 
 export async function deleteBook(id: number): Promise<{ success: boolean; message: string }> {
-  const books = await loadBooks()
-  const book = books.find((b) => b.id === id)
+  await ensureDatabaseSchema()
+  const [book] = await sql`SELECT title, status FROM books WHERE id = ${id}`
   if (!book) return { success: false, message: `Book with ID ${id} not found.` }
   if (book.status === "Checked Out") return { success: false, message: `Cannot delete book "${book.title}" - it is currently checked out.` }
-  
-  const filtered = books.filter((b) => b.id !== id)
-  await saveBooks(filtered)
+  await sql`DELETE FROM loans WHERE book_id = ${id}`
+  await sql`DELETE FROM books WHERE id = ${id}`
   return { success: true, message: `Book "${book.title}" deleted successfully.` }
 }
 
-// ==================== PATRONS ====================
-
 export async function loadPatrons(): Promise<Patron[]> {
-  await ensureDataDir()
-  try {
-    const content = await fs.readFile(PATRONS_FILE, "utf-8")
-    return JSON.parse(content)
-  } catch {
-    // Return default patrons if file doesn't exist
-    const defaultPatrons: Patron[] = [
-      { id: 1, name: "John Smith", books_checked_out: [3] },
-      { id: 2, name: "Emily Johnson", books_checked_out: [] },
-      { id: 3, name: "Michael Brown", books_checked_out: [] },
-    ]
-    await savePatrons(defaultPatrons)
-    return defaultPatrons
-  }
-}
-
-export async function savePatrons(patrons: Patron[]): Promise<void> {
-  await ensureDataDir()
-  await fs.writeFile(PATRONS_FILE, JSON.stringify(patrons, null, 2), "utf-8")
+  await ensureDatabaseSchema()
+  const rows = await sql`
+    SELECT p.id, p.name,
+           COALESCE(array_agg(l.book_id ORDER BY l.book_id) FILTER (WHERE l.book_id IS NOT NULL), ARRAY[]::integer[]) AS books_checked_out
+    FROM patrons p
+    LEFT JOIN loans l ON l.patron_id = p.id
+    GROUP BY p.id, p.name
+    ORDER BY p.id
+  `
+  return rows as Patron[]
 }
 
 export async function getPatronById(id: number): Promise<Patron | undefined> {
   const patrons = await loadPatrons()
-  return patrons.find((p) => p.id === id)
+  return patrons.find((patron) => patron.id === id)
 }
 
 export async function addPatron(id: number, name: string): Promise<{ success: boolean; message: string; patron?: Patron }> {
-  const patrons = await loadPatrons()
+  await ensureDatabaseSchema()
   if (!Number.isInteger(id) || id < 1) {
     return { success: false, message: "Patron ID must be a positive whole number." }
   }
-  if (patrons.some((patron) => patron.id === id)) {
+  const existing = await sql`SELECT id FROM patrons WHERE id = ${id}`
+  if (existing.length > 0) {
     return { success: false, message: `Patron ID ${id} is already in use.` }
   }
-
-  const newPatron: Patron = { id, name, books_checked_out: [] }
-  patrons.push(newPatron)
-  await savePatrons(patrons)
-  return { success: true, message: `Patron "${name}" added successfully with ID ${id}.`, patron: newPatron }
+  await sql`INSERT INTO patrons (id, name) VALUES (${id}, ${name})`
+  return { success: true, message: `Patron "${name}" added successfully with ID ${id}.`, patron: { id, name, books_checked_out: [] } }
 }
 
 export async function updatePatron(id: number, name: string): Promise<{ success: boolean; message: string }> {
-  const patrons = await loadPatrons()
-  const index = patrons.findIndex((p) => p.id === id)
-  if (index === -1) return { success: false, message: `Patron with ID ${id} not found.` }
-  
-  patrons[index].name = name
-  await savePatrons(patrons)
+  await ensureDatabaseSchema()
+  const result = await sql`UPDATE patrons SET name = ${name} WHERE id = ${id} RETURNING id`
+  if (result.length === 0) return { success: false, message: `Patron with ID ${id} not found.` }
   return { success: true, message: `Patron ID ${id} updated successfully.` }
 }
 
 export async function deletePatron(id: number): Promise<{ success: boolean; message: string }> {
-  const patrons = await loadPatrons()
-  const patron = patrons.find((p) => p.id === id)
+  await ensureDatabaseSchema()
+  const [patron] = await sql`
+    SELECT p.name, COUNT(l.book_id)::int AS loan_count
+    FROM patrons p
+    LEFT JOIN loans l ON l.patron_id = p.id
+    WHERE p.id = ${id}
+    GROUP BY p.id, p.name
+  `
   if (!patron) return { success: false, message: `Patron with ID ${id} not found.` }
-  if (patron.books_checked_out.length > 0) return { success: false, message: `Cannot delete patron "${patron.name}" - they have ${patron.books_checked_out.length} book(s) checked out.` }
-  
-  const filtered = patrons.filter((p) => p.id !== id)
-  await savePatrons(filtered)
+  if (patron.loan_count > 0) return { success: false, message: `Cannot delete patron "${patron.name}" - they have ${patron.loan_count} book(s) checked out.` }
+  await sql`DELETE FROM patrons WHERE id = ${id}`
   return { success: true, message: `Patron "${patron.name}" deleted successfully.` }
 }
 
-// ==================== LIBRARY OPERATIONS ====================
-
 export async function borrowBook(bookId: number, patronId: number): Promise<{ success: boolean; message: string }> {
-  const books = await loadBooks()
-  const patrons = await loadPatrons()
-  
-  const book = books.find((b) => b.id === bookId)
+  await ensureDatabaseSchema()
+  const [book] = await sql`SELECT title, status FROM books WHERE id = ${bookId}`
   if (!book) return { success: false, message: `Book with ID ${bookId} not found.` }
-  
-  const patron = patrons.find((p) => p.id === patronId)
+  const [patron] = await sql`SELECT name FROM patrons WHERE id = ${patronId}`
   if (!patron) return { success: false, message: `Patron with ID ${patronId} not found.` }
-  
   if (book.status === "Checked Out") return { success: false, message: `Book "${book.title}" is currently checked out.` }
-  
-  book.status = "Checked Out"
-  book.borrowed_date = new Date().toISOString().replace("T", " ").slice(0, 19)
-  patron.books_checked_out.push(bookId)
-  
-  await saveBooks(books)
-  await savePatrons(patrons)
+
+  const borrowedDate = new Date().toISOString().replace("T", " ").slice(0, 19)
+  const dueDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  await sql`
+    UPDATE books
+    SET status = 'Checked Out', borrowed_date = ${borrowedDate}
+    WHERE id = ${bookId}
+  `
+  await sql`
+    INSERT INTO loans (patron_id, book_id, borrowed_date, due_return_date)
+    VALUES (${patronId}, ${bookId}, ${borrowedDate}, ${dueDate})
+  `
   return { success: true, message: `Book "${book.title}" borrowed successfully by ${patron.name}.` }
 }
 
 export async function returnBook(bookId: number, patronId: number): Promise<{ success: boolean; message: string }> {
-  const books = await loadBooks()
-  const patrons = await loadPatrons()
-  
-  const book = books.find((b) => b.id === bookId)
+  await ensureDatabaseSchema()
+  const [book] = await sql`SELECT title FROM books WHERE id = ${bookId}`
   if (!book) return { success: false, message: `Book with ID ${bookId} not found.` }
-  
-  const patron = patrons.find((p) => p.id === patronId)
+  const [patron] = await sql`SELECT name FROM patrons WHERE id = ${patronId}`
   if (!patron) return { success: false, message: `Patron with ID ${patronId} not found.` }
-  
-  if (!patron.books_checked_out.includes(bookId)) return { success: false, message: `Patron "${patron.name}" does not have book "${book.title}" checked out.` }
-  
-  book.status = "Available"
-  book.borrowed_date = null
-  patron.books_checked_out = patron.books_checked_out.filter((id) => id !== bookId)
-  
-  await saveBooks(books)
-  await savePatrons(patrons)
+  const loan = await sql`SELECT 1 FROM loans WHERE patron_id = ${patronId} AND book_id = ${bookId}`
+  if (loan.length === 0) return { success: false, message: `Patron "${patron.name}" does not have book "${book.title}" checked out.` }
+
+  await sql`DELETE FROM loans WHERE patron_id = ${patronId} AND book_id = ${bookId}`
+  await sql`UPDATE books SET status = 'Available', borrowed_date = NULL WHERE id = ${bookId}`
   return { success: true, message: `Book "${book.title}" returned successfully by ${patron.name}.` }
 }
 
-// ==================== STATISTICS ====================
-
 export async function getStatistics(): Promise<LibraryStats> {
-  const books = await loadBooks()
-  const patrons = await loadPatrons()
-  
-  const availableBooks = books.filter((b) => b.status === "Available").length
-  const activePatrons = patrons.filter((p) => p.books_checked_out.length > 0).length
-  
+  await ensureDatabaseSchema()
+  const [stats] = await sql`
+    SELECT
+      (SELECT COUNT(*)::int FROM books) AS total_books,
+      (SELECT COUNT(*)::int FROM books WHERE status = 'Available') AS available_books,
+      (SELECT COUNT(*)::int FROM patrons) AS total_patrons,
+      (SELECT COUNT(DISTINCT patron_id)::int FROM loans) AS active_patrons
+  `
   return {
-    total_books: books.length,
-    available_books: availableBooks,
-    checked_out_books: books.length - availableBooks,
-    total_patrons: patrons.length,
-    active_patrons: activePatrons,
+    total_books: stats.total_books,
+    available_books: stats.available_books,
+    checked_out_books: stats.total_books - stats.available_books,
+    total_patrons: stats.total_patrons,
+    active_patrons: stats.active_patrons,
   }
 }
-
-// ==================== EXPORT TO CSV ====================
 
 export async function exportBooksToCSV(): Promise<string> {
   const books = await loadBooks()
   const headers = ["ID", "Title", "Author", "Genre", "Year", "Status", "Borrowed Date"]
-  const rows = books.map((b) => [b.id, `"${b.title}"`, `"${b.author}"`, `"${b.genre}"`, b.year, b.status, b.borrowed_date || "N/A"])
-  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
+  const rows = books.map((book) => [
+    book.id,
+    `"${book.title}"`,
+    `"${book.author}"`,
+    `"${book.genre}"`,
+    book.year,
+    book.status,
+    book.borrowed_date || "N/A",
+  ])
+  return [headers.join(","), ...rows.map((row) => row.join(","))].join("\n")
 }
 
 export async function exportPatronsToCSV(): Promise<string> {
   const patrons = await loadPatrons()
   const headers = ["ID", "Name", "Books Checked Out"]
-  const rows = patrons.map((p) => [p.id, `"${p.name}"`, p.books_checked_out.length])
-  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
+  const rows = patrons.map((patron) => [patron.id, `"${patron.name}"`, patron.books_checked_out.length])
+  return [headers.join(","), ...rows.map((row) => row.join(","))].join("\n")
 }

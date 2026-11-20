@@ -18,12 +18,13 @@ type SortField = "id" | "title" | "author" | "genre" | "year" | "status"
 type SortDirection = "asc" | "desc"
 
 export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
+  const safeBooks = Array.isArray(books) ? books : []
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "Available" | "Checked Out">("all")
   const [sortField, setSortField] = useState<SortField>("id")
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
 
-  const filteredBooks = books
+  const filteredBooks = safeBooks
     .filter((book) => {
       const matchesSearch =
         book.title.toLowerCase().includes(search.toLowerCase()) ||

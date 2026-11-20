@@ -17,14 +17,35 @@ import { ConfirmDialog } from "./confirm-dialog"
 import { BrandFooter } from "./brand-footer"
 import { Plus, Download, Library, BookOpen, Users, ArrowLeftRight, LogOut } from "lucide-react"
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json())
+const fetcher = async (url: string) => {
+  const response = await fetch(url)
+  const data = await response.json()
+  if (!response.ok) {
+    throw new Error(data?.message || "Unable to load library data.")
+  }
+  return data
+}
+
+async function readApiResponse(response: Response) {
+  const text = await response.text()
+  if (!text) {
+    return { success: false, message: `The server returned no response (${response.status}).` }
+  }
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { success: false, message: `The server returned an invalid response (${response.status}).` }
+  }
+}
 
 export function LibraryDashboard() {
   const { toast } = useToast()
   
   // Fetch data
-  const { data: books = [], isLoading: booksLoading } = useSWR<Book[]>("/api/books", fetcher)
-  const { data: patrons = [], isLoading: patronsLoading } = useSWR<Patron[]>("/api/patrons", fetcher)
+  const { data: booksData, isLoading: booksLoading } = useSWR<Book[]>("/api/books", fetcher)
+  const { data: patronsData, isLoading: patronsLoading } = useSWR<Patron[]>("/api/patrons", fetcher)
+  const books = Array.isArray(booksData) ? booksData : []
+  const patrons = Array.isArray(patronsData) ? patronsData : []
   const { data: stats } = useSWR<LibraryStats>("/api/stats", fetcher)
   
   // Form states
@@ -51,17 +72,12 @@ export function LibraryDashboard() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     })
-    const result = await res.json()
-    const isDuplicate = res.status === 409
+    const result = await readApiResponse(res)
     toast({
-      title: result.success ? "Success" : isDuplicate ? "Book already exists" : "Error",
+      title: result.success ? "Success" : "Error",
       description: result.message,
-      variant: result.success || isDuplicate ? "default" : "destructive",
-      className: isDuplicate
-        ? "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100"
-        : undefined,
+      variant: result.success ? "default" : "destructive",
     })
-
     if (result.success) refreshData()
     return result.success
   }
@@ -72,15 +88,11 @@ export function LibraryDashboard() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     })
-    const result = await res.json()
-    const isDuplicate = res.status === 409
+    const result = await readApiResponse(res)
     toast({
-      title: result.success ? "Success" : isDuplicate ? "Book already exists" : "Error",
+      title: result.success ? "Success" : "Error",
       description: result.message,
-      variant: result.success || isDuplicate ? "default" : "destructive",
-      className: isDuplicate
-        ? "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100"
-        : undefined,
+      variant: result.success ? "default" : "destructive",
     })
     if (result.success) refreshData()
     return result.success
@@ -106,14 +118,10 @@ export function LibraryDashboard() {
       body: JSON.stringify(data),
     })
     const result = await res.json()
-    const isDuplicate = res.status === 409
     toast({
-      title: result.success ? "Success" : isDuplicate ? "Patron already exists" : "Error",
+      title: result.success ? "Success" : "Error",
       description: result.message,
-      variant: result.success || isDuplicate ? "default" : "destructive",
-      className: isDuplicate
-        ? "border-amber-500 bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100"
-        : undefined,
+      variant: result.success ? "default" : "destructive",
     })
     if (result.success) refreshData()
     return result.success

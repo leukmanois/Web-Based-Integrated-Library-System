@@ -34,5 +34,23 @@
     "year": 2010,
     "status": "Available",
     "borrowed_date": null
+  },
+  {
+    "id": 500,
+    "title": "Sol",
+    "author": "Sol",
+    "genre": "Sol",
+    "year": 1850,
+    "status": "Available",
+    "borrowed_date": null
+  },
+  {
+    "id": 109,
+    "title": "sol",
+    "author": "sol",
+    "genre": "sol",
+    "year": 1850,
+    "status": "Available",
+    "borrowed_date": null
   }
 ]
