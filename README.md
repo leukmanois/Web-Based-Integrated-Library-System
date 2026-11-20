@@ -82,12 +82,34 @@ npm run dev
 
 ---
 
-## 👨‍💻 Author
+## 👨‍💻 Developers
+
+**Freshia P. Apad**
+* Database Encoder, Documentation
+
+**Loraine R. Azul**
+* Frontend, Documentation
 
 **Rodrigo Victor M. Beltran**
+* Full-stack, Project Manager
 
-* Web Developer
-* Experienced in HTML, CSS, JavaScript, TypeScript, Python, Java, C#, C++, PHP, Ruby, MySQL, MongoDB
+**Aljon Gabriel R. Lanuzo**
+* Database Encoder, Documentation
+
+**Lyanne A. Luistro**
+* Quality Assurance Tester (Transactions), Documentation
+
+**Eugene G. Mallari**
+* Quality Assurance Tester (Login), Documentation
+
+**Luke R. Manaois**
+* Backend, Database Injection
+
+**Paul Lawrence A. Mendoza**
+* Backend, Database Injection
+
+**Jan Rhey P. Paano**
+* Full-stack
 
 ---
 
