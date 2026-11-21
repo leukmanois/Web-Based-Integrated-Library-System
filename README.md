@@ -2,7 +2,7 @@
 
 A modern and responsive **Library Management System** designed to simplify the management of books, users, and borrowing activities through an intuitive dashboard interface.
 
-## 🚀 Live Demo
+## 🚀 Live Link
 
 🔗 https://webbils.vercel.app/
 
@@ -10,7 +10,7 @@ A modern and responsive **Library Management System** designed to simplify the m
 
 ## 🧠 Overview
 
-This system provides an efficient way to manage library operations digitally. It allows administrators to handle books, users, and transactions while offering a clean and user-friendly interface.
+This system provides an efficient way to manage library operations digitally. It allows administrators to keep track of books, patrons, and transactions while offering a clean and user-friendly interface.
 
 The project focuses on usability, modern UI design, and real-time data management.
 
@@ -20,7 +20,7 @@ The project focuses on usability, modern UI design, and real-time data managemen
 
 * 📊 **Dashboard Overview**
 
-  * View statistics and system insights
+  * View statistics
   * Track recent activities
 
 * 📚 **Book Management**
@@ -30,7 +30,7 @@ The project focuses on usability, modern UI design, and real-time data managemen
 
 * 👥 **User Management**
 
-  * Manage library members
+  * Manage library members (patrons)
   * Track user information and activity
 
 * 🔄 **Borrow & Return System**
@@ -50,35 +50,25 @@ The project focuses on usability, modern UI design, and real-time data managemen
 
 ## 🛠️ Tech Stack
 
-* **Frontend:** React / Next.js / Python 
+* **Frontend:** React / Next.js / Python
 * **Styling:** Tailwind CSS
 * **UI Components:** shadcn/ui
-* **Backend:** Node.js / Express (if connected)
-* **Database:** MongoDB (or planned integration) 
+* **Backend:** Node.js
+* **Database:** PostgreSQL (through Neon)
 * **Deployment:** Vercel
 
 ---
 
-## 🎯 Purpose
+## 🎯 Context & Purpose
 
-This project was built as part of my learning journey in **web development and UI/UX design**, aiming to create a real-world system that demonstrates:
+The developers are students of Cavite State University - Bacoor City Campus. The Bacoor City Campus library does not have their own Integrated Library System (ILS) and uses a cloud-based Software-as-a-Service (SaaS) called Librarika (https://cvsubccl.librarika.com/) as their ILS instead. Unfortunately, such ILS is not updated nor user-friendly. The same goes for the university-wide ILS (https://library.cvsu.edu.ph/).
+
+Our goal is to provide an open and straightforward Library Management System (LMS) that librarians can utilize with ease. We also aim to promote the use of [campus] libraries. Our system consists of:
 
 * Full dashboard design
 * CRUD operations concept
 * Clean and modern UI
 * Scalable system structure
-
----
-
-
-## ⚙️ Installation (Optional if you upload code)
-
-```bash
-git clone https://github.com/YassineS99/Movie-UX-Design-.git
-cd your-project
-npm install
-npm run dev
-```
 
 ---
 
@@ -115,8 +105,4 @@ npm run dev
 
 ## 📌 Future Improvements
 
-* Authentication system (Login/Register)
-* Role-based access (Admin / User)
-* API integration
-* Real database connection
 * Notifications system
