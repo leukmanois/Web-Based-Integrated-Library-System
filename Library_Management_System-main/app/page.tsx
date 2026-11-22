@@ -7,5 +7,5 @@ export default async function Page() {
   const cookieStore = await cookies()
   if (!verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value)) redirect("/login")
 
-  return <LibraryDashboard />
+  return <LibraryDashboard page="home" />
 }
