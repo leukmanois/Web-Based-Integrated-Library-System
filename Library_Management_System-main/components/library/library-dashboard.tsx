@@ -127,6 +127,7 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
       ? "Patron already exists" : "Error",
     description: result.message,
     variant: result.success ? "default" : "destructive",
+    className: !result.success && isDuplicate ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100" : undefined,
   })
     if (result.success) refreshData()
     return result.success
@@ -145,7 +146,8 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
         ? "Patron already exists" : "Error",
       description: result.message,
       variant: result.success ? "default" : "destructive",
-    })
+    className: !result.success && isDuplicate ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100" : undefined,    
+  })
     if (result.success) refreshData()
     return result.success
   }
