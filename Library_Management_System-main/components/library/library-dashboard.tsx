@@ -76,10 +76,13 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
       body: JSON.stringify(data),
     })
     const result = await readApiResponse(res)
+    const isDuplicate = res.status === 409
     toast({
-      title: result.success ? "Success" : "Error",
+      title: result.success ? "Success" : isDuplicate 
+       ? "Book already exists" : "Error",
       description: result.message,
       variant: result.success ? "default" : "destructive",
+    className: !result.success && isDuplicate ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100" : undefined,    
     })
     if (result.success) refreshData()
     return result.success
@@ -92,10 +95,13 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
       body: JSON.stringify(data),
     })
     const result = await readApiResponse(res)
+    const isDuplicate = res.status === 404
     toast({
-      title: result.success ? "Success" : "Error",
+      title: result.success ? "Success" : isDuplicate 
+       ? "Book already exists" : "Error",
       description: result.message,
       variant: result.success ? "default" : "destructive",
+    className: !result.success && isDuplicate ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100" : undefined,    
     })
     if (result.success) refreshData()
     return result.success
