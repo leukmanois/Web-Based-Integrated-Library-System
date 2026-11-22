@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useCallback } from "react"
 import useSWR, { mutate } from "swr"
 import type { Book, Patron, LibraryStats } from "@/lib/types"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
@@ -15,7 +14,10 @@ import { TransactionPanel } from "./transaction-panel"
 import { StatsCards } from "./stats-cards"
 import { ConfirmDialog } from "./confirm-dialog"
 import { BrandFooter } from "./brand-footer"
-import { Plus, Download, Library, BookOpen, Users, ArrowLeftRight, LogOut } from "lucide-react"
+import { LibraryNavigation } from "./library-navigation"
+import { Plus, Download, Library } from "lucide-react"
+
+export type LibraryPage = "home" | "books" | "patrons" | "transactions"
 
 const fetcher = async (url: string) => {
   const response = await fetch(url)
@@ -38,7 +40,7 @@ async function readApiResponse(response: Response) {
   }
 }
 
-export function LibraryDashboard() {
+export function LibraryDashboard({ page }: { page: LibraryPage }) {
   const { toast } = useToast()
   
   // Fetch data
@@ -193,20 +195,6 @@ export function LibraryDashboard() {
     window.open(`/api/export?type=${type}`, "_blank")
   }
 
-  const handleSignOut = async () => {
-    try {
-      const response = await fetch("/api/auth/logout", { method: "POST" })
-      if (!response.ok) throw new Error("Sign out request failed.")
-      window.location.assign("/login")
-    } catch {
-      toast({
-        title: "Unable to sign out",
-        description: "Please try again.",
-        variant: "destructive",
-      })
-    }
-  }
-
   // Edit handlers
   const openEditBook = (book: Book) => {
     setEditingBook(book)
@@ -231,127 +219,110 @@ export function LibraryDashboard() {
   const isLoading = booksLoading || patronsLoading
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      {/* Header */}
-      <header className="relative isolate overflow-hidden border-b border-emerald-100 bg-white text-slate-900">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-36 h-80 w-80 rounded-full border border-emerald-200/70" />
-        <div aria-hidden="true" className="pointer-events-none absolute -right-8 -top-24 h-56 w-56 rounded-full border border-emerald-200/50" />
-        <div aria-hidden="true" className="pointer-events-none absolute right-1/4 top-0 h-full w-72 bg-emerald-100/70 blur-3xl" />
-        <div className="container relative mx-auto px-4 py-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
+    <div className="flex min-h-screen flex-col bg-slate-50/40 pb-16 md:pb-0">
+      <header className="sticky top-0 z-40 border-b border-emerald-100 bg-white/95 backdrop-blur">
+        <div className="container mx-auto px-4">
+          <div className="flex min-h-20 items-center justify-between gap-4 py-3">
+            <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
                 <Library className="h-6 w-6" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-lg font-bold leading-tight tracking-tight sm:text-xl">
-                  LIBRCS: Library Information Book Resources Catalog System
+                <h1 className="truncate text-sm font-bold tracking-tight sm:text-lg">
+                  LIBRCS
                 </h1>
-                <p className="text-xs text-slate-600">Manage books, patrons, and transactions</p>
+                <p className="hidden text-xs text-slate-500 sm:block">
+                  Library Information Book Resources Catalog System
+                </p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" className="border-emerald-200 bg-white text-slate-700 hover:bg-emerald-50 hover:text-emerald-900" onClick={() => handleExport("books")}>
-                <Download className="mr-2 h-4 w-4" />
-                Export Books
-              </Button>
-              <Button variant="outline" size="sm" className="border-emerald-200 bg-white text-slate-700 hover:bg-emerald-50 hover:text-emerald-900" onClick={() => handleExport("patrons")}>
-                <Download className="mr-2 h-4 w-4" />
-                Export Patrons
-              </Button>
-              <Button variant="outline" size="sm" className="border-emerald-200 bg-white text-slate-700 hover:bg-emerald-50 hover:text-emerald-900" onClick={handleSignOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign out
-              </Button>
-            </div>
+            <LibraryNavigation />
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto w-full flex-1 bg-gradient-to-br from-emerald-50/40 via-transparent to-transparent px-4 py-6">
-        {/* Stats */}
-        {stats && <StatsCards stats={stats} />}
+      <main className="container mx-auto w-full flex-1 px-4 py-6 sm:py-8">
+        {page === "home" && (
+          <section>
+            <div className="mb-6">
+              <p className="text-sm font-medium text-emerald-700">Dashboard</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Library overview</h2>
+            </div>
+            {stats ? <StatsCards stats={stats} /> : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[0, 1, 2, 3].map((item) => (
+                  <div key={item} className="h-32 animate-pulse rounded-xl border border-emerald-100 bg-emerald-50/40" />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
-        {/* Tabs */}
-        <Tabs defaultValue="books" className="mt-6">
-          <TabsList className="grid h-11 w-full grid-cols-3 border border-emerald-100 bg-emerald-50/80 p-1 text-slate-600 shadow-sm lg:w-auto lg:inline-flex">
-            <TabsTrigger value="books" className="gap-2 text-slate-600 hover:text-emerald-800 data-[state=active]:bg-white data-[state=active]:text-emerald-800 data-[state=active]:shadow-sm">
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Books</span>
-            </TabsTrigger>
-            <TabsTrigger value="patrons" className="gap-2 text-slate-600 hover:text-emerald-800 data-[state=active]:bg-white data-[state=active]:text-emerald-800 data-[state=active]:shadow-sm">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Patrons</span>
-            </TabsTrigger>
-            <TabsTrigger value="transactions" className="gap-2 text-slate-600 hover:text-emerald-800 data-[state=active]:bg-white data-[state=active]:text-emerald-800 data-[state=active]:shadow-sm">
-              <ArrowLeftRight className="h-4 w-4" />
-              <span className="hidden sm:inline">Transactions</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Books Tab */}
-          <TabsContent value="books" className="mt-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Book Management</h2>
-              <Button className="bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => { setEditingBook(null); setBookFormOpen(true); }}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Book
-              </Button>
+        {page === "books" && (
+          <section>
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-emerald-700">Collection</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Books</h2>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 border-emerald-200 sm:flex-none" onClick={() => handleExport("books")}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export CSV
+                </Button>
+                <Button className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 sm:flex-none" onClick={() => { setEditingBook(null); setBookFormOpen(true); }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Book
+                </Button>
+              </div>
             </div>
             {isLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-muted-foreground">Loading books...</div>
-              </div>
+              <div className="flex h-64 items-center justify-center rounded-xl border border-emerald-100 bg-white text-muted-foreground">Loading books...</div>
             ) : (
-              <BookTable
-                books={books}
-                onEdit={openEditBook}
-                onDelete={(book) => setDeleteBookConfirm(book)}
-              />
+              <BookTable books={books} onEdit={openEditBook} onDelete={(book) => setDeleteBookConfirm(book)} />
             )}
-          </TabsContent>
+          </section>
+        )}
 
-          {/* Patrons Tab */}
-          <TabsContent value="patrons" className="mt-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Patron Management</h2>
-              <Button className="bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => { setEditingPatron(null); setPatronFormOpen(true); }}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Patron
-              </Button>
+        {page === "patrons" && (
+          <section>
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-emerald-700">Members</p>
+                <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Patrons</h2>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 border-emerald-200 sm:flex-none" onClick={() => handleExport("patrons")}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export CSV
+                </Button>
+                <Button className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700 sm:flex-none" onClick={() => { setEditingPatron(null); setPatronFormOpen(true); }}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Patron
+                </Button>
+              </div>
             </div>
             {isLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-muted-foreground">Loading patrons...</div>
-              </div>
+              <div className="flex h-64 items-center justify-center rounded-xl border border-emerald-100 bg-white text-muted-foreground">Loading patrons...</div>
             ) : (
-              <PatronTable
-                patrons={patrons}
-                books={books}
-                onEdit={openEditPatron}
-                onDelete={(patron) => setDeletePatronConfirm(patron)}
-              />
+              <PatronTable patrons={patrons} books={books} onEdit={openEditPatron} onDelete={(patron) => setDeletePatronConfirm(patron)} />
             )}
-          </TabsContent>
+          </section>
+        )}
 
-          {/* Transactions Tab */}
-          <TabsContent value="transactions" className="mt-6">
-            <h2 className="text-xl font-semibold mb-4">Borrow & Return Books</h2>
+        {page === "transactions" && (
+          <section>
+            <div className="mb-5">
+              <p className="text-sm font-medium text-emerald-700">Circulation</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Transactions</h2>
+            </div>
             {isLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-muted-foreground">Loading...</div>
-              </div>
+              <div className="flex h-64 items-center justify-center rounded-xl border border-emerald-100 bg-white text-muted-foreground">Loading transactions...</div>
             ) : (
-              <TransactionPanel
-                books={books}
-                patrons={patrons}
-                onBorrow={handleBorrow}
-                onReturn={handleReturn}
-              />
+              <TransactionPanel books={books} patrons={patrons} onBorrow={handleBorrow} onReturn={handleReturn} />
             )}
-          </TabsContent>
-        </Tabs>
+          </section>
+        )}
       </main>
 
       <BrandFooter />
