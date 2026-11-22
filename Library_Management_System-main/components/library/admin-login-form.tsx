@@ -2,7 +2,8 @@
 
 import { useState, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowRight, Eye, EyeOff, KeyRound, Library, LockKeyhole, ShieldCheck } from "lucide-react"
+import Image from "next/image"
+import { ArrowRight, Eye, EyeOff, KeyRound, LockKeyhole, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { BrandFooter } from "./brand-footer"
@@ -62,12 +63,12 @@ export function AdminLoginForm() {
           <div aria-hidden="true" className="absolute -bottom-28 -left-20 h-80 w-80 rounded-full bg-emerald-200/60 blur-3xl" />
 
           <div className="relative flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-700 ring-1 ring-emerald-200">
-              <Library className="h-5 w-5" />
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white p-1 ring-1 ring-emerald-200">
+              <Image src="/ORCA-green.png" alt="ORCA logo" width={44} height={44} className="h-10 w-10 object-contain" priority />
             </div>
             <div>
-              <span className="block text-sm font-bold tracking-wide">LIBRCS:</span>
-              <span className="block max-w-[250px] text-xs leading-4 text-slate-600">Library Information Book Resources Catalog System</span>
+              <span className="block text-sm font-bold tracking-wide">ORCA</span>
+              <span className="block max-w-[250px] text-xs leading-4 text-slate-600">Organized Resource &amp; Catalog System</span>
             </div>
           </div>
 
@@ -91,12 +92,12 @@ export function AdminLoginForm() {
         <section className="flex items-center justify-center px-6 py-10 sm:px-12 lg:px-14">
           <div className="w-full max-w-sm">
             <div className="mb-8 flex items-center gap-3 lg:hidden">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
-                <Library className="h-5 w-5" />
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 p-1 ring-1 ring-emerald-200">
+                <Image src="/ORCA-green.png" alt="ORCA logo" width={40} height={40} className="h-9 w-9 object-contain" priority />
               </div>
               <div>
-                <span className="block text-sm font-bold">LIBRCS:</span>
-                <span className="block max-w-[250px] text-xs leading-4 text-slate-600">Library Information Book Resources Catalog System</span>
+                <span className="block text-sm font-bold">ORCA</span>
+                <span className="block max-w-[250px] text-xs leading-4 text-slate-600">Organized Resource &amp; Catalog System</span>
               </div>
             </div>
 

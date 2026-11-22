@@ -1,20 +1,14 @@
-import { BookOpen } from "lucide-react"
+import Image from "next/image"
 
 export function BrandFooter() {
   return (
     <footer className="relative mt-auto overflow-hidden border-t border-emerald-100 bg-white/90">
       <div aria-hidden="true" className="pointer-events-none absolute -top-10 left-1/4 h-20 w-48 rounded-full bg-emerald-100/70 blur-2xl" />
-      <div className="container relative mx-auto flex flex-col items-center justify-between gap-2 px-4 py-4 sm:flex-row">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-100 bg-gradient-to-br from-white to-emerald-100 text-emerald-700">
-            <BookOpen className="h-4 w-4" />
-          </span>
-          <span className="font-semibold tracking-wide text-slate-800">LIBRCS 2026</span>
-        </div>
-        <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-[0.16em] text-emerald-700/70">
-          <span className="h-px w-8 bg-gradient-to-r from-transparent to-emerald-400/70" />
-          Library Information Book Resources Catalog System
-          <span className="h-px w-8 bg-gradient-to-l from-transparent to-emerald-400/70" />
+      <div className="container relative mx-auto flex flex-col items-center justify-center gap-2 px-4 py-5 text-center">
+        <Image src="/ORCA-green.png" alt="ORCA logo" width={40} height={40} className="h-10 w-10 object-contain" />
+        <div className="text-sm font-semibold tracking-wide text-slate-800">ORCA</div>
+        <div className="text-xs font-medium text-emerald-700/80">
+          Organized Resource &amp; Catalog System
         </div>
       </div>
     </footer>

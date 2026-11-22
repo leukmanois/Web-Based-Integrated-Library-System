@@ -15,7 +15,8 @@ import { StatsCards } from "./stats-cards"
 import { ConfirmDialog } from "./confirm-dialog"
 import { BrandFooter } from "./brand-footer"
 import { LibraryNavigation } from "./library-navigation"
-import { Plus, Download, Library } from "lucide-react"
+import { Plus, Download } from "lucide-react"
+import Image from "next/image"
 
 export type LibraryPage = "home" | "books" | "patrons" | "transactions"
 
@@ -224,15 +225,15 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
         <div className="container mx-auto px-4">
           <div className="flex min-h-20 items-center justify-between gap-4 py-3">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
-                <Library className="h-6 w-6" />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50 p-1 ring-1 ring-emerald-100">
+                <Image src="/ORCA-green.png" alt="ORCA logo" width={44} height={44} className="h-10 w-10 object-contain" priority />
               </div>
               <div className="min-w-0">
                 <h1 className="truncate text-sm font-bold tracking-tight sm:text-lg">
-                  LIBRCS
+                  ORCA
                 </h1>
                 <p className="hidden text-xs text-slate-500 sm:block">
-                  Library Information Book Resources Catalog System
+                  Organized Resource &amp; Catalog System
                 </p>
               </div>
             </div>
