@@ -50,12 +50,20 @@ The project focuses on usability, modern UI design, and real-time data managemen
 
 ## 🛠️ Tech Stack
 
-* **Frontend:** React / Next.js / Python
-* **Styling:** Tailwind CSS
-* **UI Components:** shadcn/ui
-* **Backend:** Node.js
-* **Database:** PostgreSQL (through Neon)
+* **Framework:** Next.js 16.1.6
+* **Frontend:** React 19.2.4
+* **Language:** Strict TypeScript
+* **Styling:** Tailwind CSS 4 through PostCSS
+* **UI Library:** shadcn/ui-style components configured in components.json
+* **Backend:** Next.js route handlers under app/api
+* **Database:** Neon PostgreSQL using @neondatabase/serverless
+* **Authentication:** Custom session cookies using PBKDF2 and HMAC-SHA256
+* **Data fetching/forms:** SWR, React Hook Form, Zod
+* **Additional UI libraries:** Recharts, Sonner, Next Themes
+* **Fonts:** Geist and Geist Mono
 * **Deployment:** Vercel
+* **Analytics:** Vercel Analytics
+* **Package manager artifacts:** Both pnpm-lock.yaml and package-lock.json are present
 
 ---
 
