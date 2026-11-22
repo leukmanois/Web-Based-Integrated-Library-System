@@ -121,11 +121,13 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
       body: JSON.stringify(data),
     })
     const result = await res.json()
-    toast({
-      title: result.success ? "Success" : "Error",
-      description: result.message,
-      variant: result.success ? "default" : "destructive",
-    })
+    const isDuplicate = res.status === 409
+  toast({
+    title: result.success ? "Success" : isDuplicate
+      ? "Patron already exists" : "Error",
+    description: result.message,
+    variant: result.success ? "default" : "destructive",
+  })
     if (result.success) refreshData()
     return result.success
   }
@@ -137,8 +139,10 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
       body: JSON.stringify(data),
     })
     const result = await res.json()
+    const isDuplicate = res.status === 404
     toast({
-      title: result.success ? "Success" : "Error",
+      title: result.success ? "Success" : isDuplicate
+        ? "Patron already exists" : "Error",
       description: result.message,
       variant: result.success ? "default" : "destructive",
     })
