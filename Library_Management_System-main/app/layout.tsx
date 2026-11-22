@@ -7,25 +7,12 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'LIBRCS: Library Information Book Resources Catalog System',
-  description: 'LIBRCS is a library information system for managing books, patrons, and transactions.',
+  title: 'ORCA: Organized Resource & Catalog System',
+  description: 'ORCA is an organized resource and catalog system for managing books, patrons, and transactions.',
   generator: 'v0.app',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/ORCA-green.png',
+    apple: '/ORCA-green.png',
   },
 }
 
