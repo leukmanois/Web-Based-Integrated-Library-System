@@ -8,7 +8,8 @@ import { useToast } from "@/hooks/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { BookTable } from "./book-table"
 import { PatronTable } from "./patron-table"
-import { BookForm } from "./book-form"
+import { BookForm, type BookFormValues } from "./book-form"
+import { BookCover } from "./book-cover"
 import { PatronForm } from "./patron-form"
 import { TransactionPanel } from "./transaction-panel"
 import { StatsCards } from "./stats-cards"
@@ -42,6 +43,17 @@ async function readApiResponse(response: Response) {
   }
 }
 
+function toBookFormData(data: BookFormValues) {
+  const formData = new FormData()
+  formData.append("id", String(data.id))
+  formData.append("title", data.title)
+  formData.append("author", data.author)
+  formData.append("genre", data.genre)
+  formData.append("year", String(data.year))
+  if (data.coverImage) formData.append("coverImage", data.coverImage)
+  return formData
+}
+
 export function LibraryDashboard({ page }: { page: LibraryPage }) {
   const { toast } = useToast()
   
@@ -70,30 +82,25 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
   }, [])
 
   // Book operations
-  const handleAddBook = async (data: { id: number; title: string; author: string; genre: string; year: number }) => {
+  const handleAddBook = async (data: BookFormValues) => {
     const res = await fetch("/api/books", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: toBookFormData(data),
     })
     const result = await readApiResponse(res)
-    const isDuplicate = !result.success && res.status === 409
     toast({
-      title: result.success ? "Success" : isDuplicate ? "Oops! Book already exists" : "Error",
+      title: result.success ? "Success" : "Error",
       description: result.message,
       variant: result.success ? "default" : "destructive",
-      className: isDuplicate
-        ? "border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-100" : undefined,
     })
     if (result.success) refreshData()
     return result.success
   }
 
-  const handleUpdateBook = async (data: { id: number; title: string; author: string; genre: string; year: number }) => {
+  const handleUpdateBook = async (data: BookFormValues) => {
     const res = await fetch("/api/books", {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: toBookFormData(data),
     })
     const result = await readApiResponse(res)
     toast({
@@ -125,13 +132,10 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
       body: JSON.stringify(data),
     })
     const result = await res.json()
-    const isDuplicate = !result.success && res.status === 409
     toast({
-      title: result.success ? "Success" : isDuplicate ? "Oops! Patron already exists" : "Error",
+      title: result.success ? "Success" : "Error",
       description: result.message,
       variant: result.success ? "default" : "destructive",
-      className: isDuplicate
-        ? "border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-100" : undefined,
     })
     if (result.success) refreshData()
     return result.success
@@ -274,13 +278,16 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
                   </CardHeader>
                   <CardContent>
                     {stats.recent_book ? (
-                      <>
-                        <p className="truncate text-lg font-semibold text-slate-900">{stats.recent_book.title}</p>
-                        <p className="mt-1 truncate text-sm text-muted-foreground">{stats.recent_book.author}</p>
-                        <p className="mt-3 text-xs text-emerald-700">
-                          {stats.recent_book.genre} · {stats.recent_book.year} · ID {stats.recent_book.id}
-                        </p>
-                      </>
+                      <div className="flex items-center gap-4">
+                        <BookCover src={stats.recent_book.cover_image} title={stats.recent_book.title} className="h-28 w-20" />
+                        <div className="min-w-0">
+                          <p className="truncate text-lg font-semibold text-slate-900">{stats.recent_book.title}</p>
+                          <p className="mt-1 truncate text-sm text-muted-foreground">{stats.recent_book.author}</p>
+                          <p className="mt-3 text-xs text-emerald-700">
+                            {stats.recent_book.genre} · {stats.recent_book.year} · ID {stats.recent_book.id}
+                          </p>
+                        </div>
+                      </div>
                     ) : (
                       <p className="py-2 text-sm text-muted-foreground">No books have been added yet.</p>
                     )}
@@ -296,13 +303,16 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
                   </CardHeader>
                   <CardContent>
                     {stats.most_borrowed_book ? (
-                      <>
-                        <p className="truncate text-lg font-semibold text-slate-900">{stats.most_borrowed_book.title}</p>
-                        <p className="mt-1 truncate text-sm text-muted-foreground">{stats.most_borrowed_book.author}</p>
-                        <p className="mt-3 text-xs text-emerald-700">
-                          {stats.most_borrowed_book.borrow_count} checkout{stats.most_borrowed_book.borrow_count === 1 ? "" : "s"} recorded · ID {stats.most_borrowed_book.id}
-                        </p>
-                      </>
+                      <div className="flex items-center gap-4">
+                        <BookCover src={stats.most_borrowed_book.cover_image} title={stats.most_borrowed_book.title} className="h-28 w-20" />
+                        <div className="min-w-0">
+                          <p className="truncate text-lg font-semibold text-slate-900">{stats.most_borrowed_book.title}</p>
+                          <p className="mt-1 truncate text-sm text-muted-foreground">{stats.most_borrowed_book.author}</p>
+                          <p className="mt-3 text-xs text-emerald-700">
+                            {stats.most_borrowed_book.borrow_count} checkout{stats.most_borrowed_book.borrow_count === 1 ? "" : "s"} recorded · ID {stats.most_borrowed_book.id}
+                          </p>
+                        </div>
+                      </div>
                     ) : (
                       <p className="py-2 text-sm text-muted-foreground">No book checkouts have been recorded yet.</p>
                     )}
@@ -332,7 +342,13 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
               </div>
             </div>
             {isLoading ? (
-              <div className="flex h-64 items-center justify-center rounded-xl border border-emerald-100 bg-white text-muted-foreground">Loading books...</div>
+              <div
+                className="flex h-64 items-center justify-center rounded-xl border border-emerald-100 bg-white"
+                role="status"
+                aria-label="Loading books"
+              >
+                <div className="loader" aria-hidden="true" />
+              </div>
             ) : (
               <BookTable books={books} onEdit={openEditBook} onDelete={(book) => setDeleteBookConfirm(book)} />
             )}
