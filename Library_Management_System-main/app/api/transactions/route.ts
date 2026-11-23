@@ -6,14 +6,17 @@ export async function POST(request: Request) {
   if (!isAuthenticatedRequest(request)) return unauthorizedResponse()
   try {
     const body = await request.json()
-    const { action, bookId, patronId } = body
+    const { action, bookId, patronId, durationDays } = body
 
     if (!action || !bookId || !patronId) {
       return NextResponse.json({ success: false, message: "Action, bookId, and patronId are required." }, { status: 400 })
     }
 
     if (action === "borrow") {
-      const result = await borrowBook(Number(bookId), Number(patronId))
+      const requestedDuration = durationDays === undefined || durationDays === null
+        ? 14
+        : Number(durationDays)
+      const result = await borrowBook(Number(bookId), Number(patronId), requestedDuration)
       return NextResponse.json(result, { status: result.success ? 200 : 400 })
     }
     if (action === "return") {
