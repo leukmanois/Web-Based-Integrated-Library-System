@@ -42,7 +42,7 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
       value: patron.id.toString(),
       label: patron.name,
       detail: `Patron ID: ${patron.id}`,
-      searchText: patron.name,
+      searchText: `${patron.name} ${patron.id}`,
     }))
 
   const availableBookOptions: SearchablePickerOption[] = availableBooks.map((book) => ({
@@ -105,7 +105,7 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
           <SearchablePicker
             id="borrow-patron"
             label="Patron"
-            placeholder="Type a patron name"
+            placeholder="Type a patron name or ID"
             query={borrowPatronQuery}
             selectedValue={borrowPatronId}
             options={patronOptions(safePatrons)}
@@ -167,7 +167,7 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
           <SearchablePicker
             id="return-patron"
             label="Patron"
-            placeholder="Type a patron name"
+            placeholder="Type a patron name or ID"
             query={returnPatronQuery}
             selectedValue={returnPatronId}
             options={patronOptions(safePatrons.filter((patron) => patron.books_checked_out.length > 0))}
