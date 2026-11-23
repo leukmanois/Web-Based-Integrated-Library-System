@@ -5,6 +5,7 @@ export async function loadBooks(): Promise<Book[]> {
   await ensureDatabaseSchema()
   const rows = await sql`
     SELECT b.id, b.title, b.author, b.genre, b.year, b.status, b.borrowed_date,
+           CASE WHEN b.cover_image_key IS NULL THEN NULL ELSE '/api/books/' || b.id::text || '/cover' END AS cover_image,
            l.due_return_date
     FROM books b
     LEFT JOIN loans l ON l.book_id = b.id
@@ -24,6 +25,7 @@ export async function loadBooks(): Promise<Book[]> {
       year: row.year,
       status: row.status,
       borrowed_date: row.borrowed_date,
+      cover_image: row.cover_image,
       due_return_date: dueReturnDate,
       is_overdue: isOverdue,
     }
@@ -34,6 +36,7 @@ export async function getBookById(id: number): Promise<Book | undefined> {
   await ensureDatabaseSchema()
   const rows = await sql`
     SELECT b.id, b.title, b.author, b.genre, b.year, b.status, b.borrowed_date,
+           CASE WHEN b.cover_image_key IS NULL THEN NULL ELSE '/api/books/' || b.id::text || '/cover' END AS cover_image,
            l.due_return_date
     FROM books b
     LEFT JOIN loans l ON l.book_id = b.id
@@ -45,6 +48,7 @@ export async function getBookById(id: number): Promise<Book | undefined> {
   return {
     ...row,
     borrowed_date: row.borrowed_date,
+    cover_image: row.cover_image,
     due_return_date: dueReturnDate,
     is_overdue:
       row.status === "Checked Out" &&
@@ -53,7 +57,7 @@ export async function getBookById(id: number): Promise<Book | undefined> {
   } as Book
 }
 
-export async function addBook(id: number, title: string, author: string, year: number, genre: string): Promise<{ success: boolean; message: string; book?: Book }> {
+export async function addBook(id: number, title: string, author: string, year: number, genre: string, coverImageKey?: string): Promise<{ success: boolean; message: string; book?: Book }> {
   await ensureDatabaseSchema()
   if (!Number.isInteger(id) || id < 1) {
     return { success: false, message: "Book ID must be a positive whole number." }
@@ -63,14 +67,14 @@ export async function addBook(id: number, title: string, author: string, year: n
     return { success: false, message: `Book ID ${id} is already in use.` }
   }
   const [book] = await sql`
-    INSERT INTO books (id, title, author, genre, year, status, borrowed_date)
-    VALUES (${id}, ${title}, ${author}, ${genre}, ${year}, 'Available', NULL)
+    INSERT INTO books (id, title, author, genre, year, status, borrowed_date, cover_image_key)
+    VALUES (${id}, ${title}, ${author}, ${genre}, ${year}, 'Available', NULL, ${coverImageKey ?? null})
     RETURNING id, title, author, genre, year, status, borrowed_date
   `
   return { success: true, message: `Book "${title}" added successfully with ID ${id}.`, book: book as Book }
 }
 
-export async function updateBook(id: number, updates: Partial<Pick<Book, "title" | "author" | "genre" | "year">>): Promise<{ success: boolean; message: string }> {
+export async function updateBook(id: number, updates: Partial<Pick<Book, "title" | "author" | "genre" | "year">> & { coverImageKey?: string }): Promise<{ success: boolean; message: string }> {
   await ensureDatabaseSchema()
   const existing = await sql`SELECT id FROM books WHERE id = ${id}`
   if (existing.length === 0) return { success: false, message: `Book with ID ${id} not found.` }
@@ -79,10 +83,17 @@ export async function updateBook(id: number, updates: Partial<Pick<Book, "title"
     SET title = COALESCE(${updates.title ?? null}, title),
         author = COALESCE(${updates.author ?? null}, author),
         genre = COALESCE(${updates.genre ?? null}, genre),
-        year = COALESCE(${updates.year ?? null}, year)
+        year = COALESCE(${updates.year ?? null}, year),
+        cover_image_key = COALESCE(${updates.coverImageKey ?? null}, cover_image_key)
     WHERE id = ${id}
   `
   return { success: true, message: `Book ID ${id} updated successfully.` }
+}
+
+export async function getBookCoverKey(id: number): Promise<string | null> {
+  await ensureDatabaseSchema()
+  const [book] = await sql`SELECT cover_image_key FROM books WHERE id = ${id}`
+  return book?.cover_image_key ?? null
 }
 
 export async function deleteBook(id: number): Promise<{ success: boolean; message: string }> {
@@ -204,13 +215,15 @@ export async function getStatistics(): Promise<LibraryStats> {
       (SELECT COUNT(DISTINCT patron_id)::int FROM loans) AS active_patrons
     `,
     sql`
-      SELECT id, title, author, genre, year
+      SELECT id, title, author, genre, year,
+             CASE WHEN cover_image_key IS NULL THEN NULL ELSE '/api/books/' || id::text || '/cover' END AS cover_image
       FROM books
       ORDER BY created_at DESC, id DESC
       LIMIT 1
     `,
     sql`
-      SELECT id, title, author, genre, year, borrow_count
+      SELECT id, title, author, genre, year, borrow_count,
+             CASE WHEN cover_image_key IS NULL THEN NULL ELSE '/api/books/' || id::text || '/cover' END AS cover_image
       FROM books
       WHERE borrow_count > 0
       ORDER BY borrow_count DESC, id ASC
@@ -230,6 +243,7 @@ export async function getStatistics(): Promise<LibraryStats> {
           author: recentBook.author,
           genre: recentBook.genre,
           year: recentBook.year,
+          cover_image: recentBook.cover_image,
         }
       : null,
     most_borrowed_book: mostBorrowedBook
@@ -239,6 +253,7 @@ export async function getStatistics(): Promise<LibraryStats> {
           author: mostBorrowedBook.author,
           genre: mostBorrowedBook.genre,
           year: mostBorrowedBook.year,
+          cover_image: mostBorrowedBook.cover_image,
           borrow_count: mostBorrowedBook.borrow_count,
         }
       : null,
