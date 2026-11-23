@@ -15,8 +15,9 @@ import { StatsCards } from "./stats-cards"
 import { ConfirmDialog } from "./confirm-dialog"
 import { BrandFooter } from "./brand-footer"
 import { LibraryNavigation } from "./library-navigation"
-import { Plus, Download } from "lucide-react"
+import { BookOpen, Download, Plus, TrendingUp } from "lucide-react"
 import Image from "next/image"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export type LibraryPage = "home" | "books" | "patrons" | "transactions"
 
@@ -76,13 +77,10 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
       body: JSON.stringify(data),
     })
     const result = await readApiResponse(res)
-    const isDuplicate = res.status === 409
     toast({
-      title: result.success ? "Success" : isDuplicate 
-       ? "Book already exists" : "Error",
+      title: result.success ? "Success" : "Error",
       description: result.message,
       variant: result.success ? "default" : "destructive",
-    className: !result.success && isDuplicate ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100" : undefined,    
     })
     if (result.success) refreshData()
     return result.success
@@ -95,13 +93,10 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
       body: JSON.stringify(data),
     })
     const result = await readApiResponse(res)
-    const isDuplicate = res.status === 404
     toast({
-      title: result.success ? "Success" : isDuplicate 
-       ? "Book already exists" : "Error",
+      title: result.success ? "Success" : "Error",
       description: result.message,
       variant: result.success ? "default" : "destructive",
-    className: !result.success && isDuplicate ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100" : undefined,    
     })
     if (result.success) refreshData()
     return result.success
@@ -127,14 +122,11 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
       body: JSON.stringify(data),
     })
     const result = await res.json()
-    const isDuplicate = res.status === 409
-  toast({
-    title: result.success ? "Success" : isDuplicate
-      ? "Patron already exists" : "Error",
-    description: result.message,
-    variant: result.success ? "default" : "destructive",
-    className: !result.success && isDuplicate ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100" : undefined,
-  })
+    toast({
+      title: result.success ? "Success" : "Error",
+      description: result.message,
+      variant: result.success ? "default" : "destructive",
+    })
     if (result.success) refreshData()
     return result.success
   }
@@ -146,14 +138,11 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
       body: JSON.stringify(data),
     })
     const result = await res.json()
-    const isDuplicate = res.status === 404
     toast({
-      title: result.success ? "Success" : isDuplicate
-        ? "Patron already exists" : "Error",
+      title: result.success ? "Success" : "Error",
       description: result.message,
       variant: result.success ? "default" : "destructive",
-    className: !result.success && isDuplicate ? "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100" : undefined,    
-  })
+    })
     if (result.success) refreshData()
     return result.success
   }
@@ -266,6 +255,53 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
                 {[0, 1, 2, 3].map((item) => (
                   <div key={item} className="h-32 animate-pulse rounded-xl border border-emerald-100 bg-emerald-50/40" />
                 ))}
+              </div>
+            )}
+            {stats && (
+              <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                <Card className="border-emerald-100 shadow-sm">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-medium">Most Recently Added</CardTitle>
+                    <span className="rounded-lg bg-emerald-50 p-2 text-emerald-700">
+                      <BookOpen className="h-4 w-4" />
+                    </span>
+                  </CardHeader>
+                  <CardContent>
+                    {stats.recent_book ? (
+                      <>
+                        <p className="truncate text-lg font-semibold text-slate-900">{stats.recent_book.title}</p>
+                        <p className="mt-1 truncate text-sm text-muted-foreground">{stats.recent_book.author}</p>
+                        <p className="mt-3 text-xs text-emerald-700">
+                          {stats.recent_book.genre} · {stats.recent_book.year} · ID {stats.recent_book.id}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="py-2 text-sm text-muted-foreground">No books have been added yet.</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-emerald-100 shadow-sm">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                    <CardTitle className="text-sm font-medium">Most Borrowed Book</CardTitle>
+                    <span className="rounded-lg bg-emerald-50 p-2 text-emerald-700">
+                      <TrendingUp className="h-4 w-4" />
+                    </span>
+                  </CardHeader>
+                  <CardContent>
+                    {stats.most_borrowed_book ? (
+                      <>
+                        <p className="truncate text-lg font-semibold text-slate-900">{stats.most_borrowed_book.title}</p>
+                        <p className="mt-1 truncate text-sm text-muted-foreground">{stats.most_borrowed_book.author}</p>
+                        <p className="mt-3 text-xs text-emerald-700">
+                          {stats.most_borrowed_book.borrow_count} checkout{stats.most_borrowed_book.borrow_count === 1 ? "" : "s"} recorded · ID {stats.most_borrowed_book.id}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="py-2 text-sm text-muted-foreground">No book checkouts have been recorded yet.</p>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             )}
           </section>
