@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   description: 'ORCA is an organized resource and catalog system for managing books, patrons, and transactions.',
   generator: 'v0.app',
   icons: {
-    icon: '/ORCA-white.png',
-    apple: '/ORCA-white.png',
+    icon: [{ url: '/ORCA-white-bg.png', type: 'image/png' }],
+    apple: [{ url: '/ORCA-white-bg.png', type: 'image/png' }],
   },
 }
 
