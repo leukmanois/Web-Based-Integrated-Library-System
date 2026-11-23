@@ -17,6 +17,27 @@ interface BookTableProps {
 type SortField = "id" | "title" | "author" | "genre" | "year" | "status" | "due_return_date"
 type SortDirection = "asc" | "desc"
 
+function formatBorrowedDate(value: string | null) {
+  if (!value) return "-"
+
+  const timestamp = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value)
+    ? value
+    : `${value.replace(" ", "T")}Z`
+  const date = new Date(timestamp)
+  if (Number.isNaN(date.getTime())) return value
+
+  return new Intl.DateTimeFormat("en-PH", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).format(date)
+}
+
 export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
   const safeBooks = Array.isArray(books) ? books : []
   const [search, setSearch] = useState("")
@@ -128,7 +149,7 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
               <TableHead className="cursor-pointer" onClick={() => handleSort("status")}>
                 <div className="flex items-center gap-1">Status <SortIcon field="status" /></div>
               </TableHead>
-              <TableHead>Borrowed Date</TableHead>
+              <TableHead>Borrowed Date &amp; Time (PHT)</TableHead>
               <TableHead className="cursor-pointer" onClick={() => handleSort("due_return_date")}>
                 <div className="flex items-center gap-1">Due Return Date <SortIcon field="due_return_date" /></div>
               </TableHead>
@@ -165,7 +186,7 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {book.borrowed_date || "-"}
+                    {formatBorrowedDate(book.borrowed_date)}
                   </TableCell>
                   <TableCell className={book.is_overdue ? "text-red-600 font-medium text-sm" : "text-muted-foreground text-sm"}>
                     {book.due_return_date || "-"}
