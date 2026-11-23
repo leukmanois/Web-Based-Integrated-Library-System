@@ -4,6 +4,7 @@ import { useState } from "react"
 import type { Book, Patron } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ArrowLeftRight, BookOpen, UserCheck } from "lucide-react"
@@ -12,7 +13,7 @@ import { SearchablePicker, type SearchablePickerOption } from "./searchable-pick
 interface TransactionPanelProps {
   books: Book[]
   patrons: Patron[]
-  onBorrow: (bookId: number, patronId: number) => Promise<boolean>
+  onBorrow: (bookId: number, patronId: number, durationDays: number) => Promise<boolean>
   onReturn: (bookId: number, patronId: number) => Promise<boolean>
 }
 
@@ -23,6 +24,7 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
   const [borrowPatronQuery, setBorrowPatronQuery] = useState("")
   const [borrowBookId, setBorrowBookId] = useState<string>("")
   const [borrowBookQuery, setBorrowBookQuery] = useState("")
+  const [borrowDurationDays, setBorrowDurationDays] = useState("14")
   const [returnPatronId, setReturnPatronId] = useState<string>("")
   const [returnPatronQuery, setReturnPatronQuery] = useState("")
   const [returnBookId, setReturnBookId] = useState<string>("")
@@ -40,7 +42,7 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
       value: patron.id.toString(),
       label: patron.name,
       detail: `Patron ID: ${patron.id}`,
-      searchText: `${patron.name} ${patron.id}`,
+      searchText: patron.name,
     }))
 
   const availableBookOptions: SearchablePickerOption[] = availableBooks.map((book) => ({
@@ -51,15 +53,22 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
   }))
 
   const handleBorrow = async () => {
-    if (!borrowBookId || !borrowPatronId) return
+    const durationDays = Number(borrowDurationDays)
+    if (
+      !borrowBookId ||
+      !borrowPatronId ||
+      !Number.isInteger(durationDays) ||
+      durationDays < 1
+    ) return
     setBorrowLoading(true)
     try {
-      const succeeded = await onBorrow(Number(borrowBookId), Number(borrowPatronId))
+      const succeeded = await onBorrow(Number(borrowBookId), Number(borrowPatronId), durationDays)
       if (succeeded) {
         setBorrowBookId("")
         setBorrowBookQuery("")
         setBorrowPatronId("")
         setBorrowPatronQuery("")
+        setBorrowDurationDays("14")
       }
     } finally {
       setBorrowLoading(false)
@@ -96,7 +105,7 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
           <SearchablePicker
             id="borrow-patron"
             label="Patron"
-            placeholder="Type a patron name or ID"
+            placeholder="Type a patron name"
             query={borrowPatronQuery}
             selectedValue={borrowPatronId}
             options={patronOptions(safePatrons)}
@@ -115,9 +124,28 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
             onQueryChange={setBorrowBookQuery}
             onSelect={(value) => setBorrowBookId(value)}
           />
+          <div className="space-y-2">
+            <Label htmlFor="borrow-duration">Borrowing duration (days)</Label>
+            <Input
+              id="borrow-duration"
+              type="number"
+              min="1"
+              step="1"
+              value={borrowDurationDays}
+              onChange={(event) => setBorrowDurationDays(event.target.value)}
+              placeholder="Enter number of days"
+            />
+          </div>
           <Button
             onClick={handleBorrow}
-            disabled={!borrowBookId || !borrowPatronId || borrowLoading}
+            disabled={
+              !borrowBookId ||
+              !borrowPatronId ||
+              !borrowDurationDays ||
+              !Number.isInteger(Number(borrowDurationDays)) ||
+              Number(borrowDurationDays) < 1 ||
+              borrowLoading
+            }
             className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
           >
             <ArrowLeftRight className="mr-2 h-4 w-4" />
@@ -139,7 +167,7 @@ export function TransactionPanel({ books, patrons, onBorrow, onReturn }: Transac
           <SearchablePicker
             id="return-patron"
             label="Patron"
-            placeholder="Type a patron name or ID"
+            placeholder="Type a patron name"
             query={returnPatronQuery}
             selectedValue={returnPatronId}
             options={patronOptions(safePatrons.filter((patron) => patron.books_checked_out.length > 0))}

@@ -14,13 +14,13 @@ interface BookTableProps {
   onDelete: (book: Book) => void
 }
 
-type SortField = "id" | "title" | "author" | "genre" | "year" | "status"
+type SortField = "id" | "title" | "author" | "genre" | "year" | "status" | "due_return_date"
 type SortDirection = "asc" | "desc"
 
 export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
   const safeBooks = Array.isArray(books) ? books : []
   const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState<"all" | "Available" | "Checked Out">("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | "Available" | "Checked Out" | "Overdue">("all")
   const [sortField, setSortField] = useState<SortField>("id")
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
 
@@ -31,7 +31,9 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
         book.author.toLowerCase().includes(search.toLowerCase()) ||
         book.genre.toLowerCase().includes(search.toLowerCase()) ||
         book.id.toString().includes(search)
-      const matchesStatus = statusFilter === "all" || book.status === statusFilter
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "Overdue" ? book.is_overdue : book.status === statusFilter)
       return matchesSearch && matchesStatus
     })
     .sort((a, b) => {
@@ -42,6 +44,7 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
       else if (sortField === "author") comparison = a.author.localeCompare(b.author)
       else if (sortField === "genre") comparison = a.genre.localeCompare(b.genre)
       else if (sortField === "status") comparison = a.status.localeCompare(b.status)
+      else if (sortField === "due_return_date") comparison = (a.due_return_date || "").localeCompare(b.due_return_date || "")
       return sortDirection === "asc" ? comparison : -comparison
     })
 
@@ -93,6 +96,13 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
           >
             Checked Out
           </Button>
+          <Button
+            variant={statusFilter === "Overdue" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setStatusFilter("Overdue")}
+          >
+            Overdue
+          </Button>
         </div>
       </div>
 
@@ -119,13 +129,16 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
                 <div className="flex items-center gap-1">Status <SortIcon field="status" /></div>
               </TableHead>
               <TableHead>Borrowed Date</TableHead>
+              <TableHead className="cursor-pointer" onClick={() => handleSort("due_return_date")}>
+                <div className="flex items-center gap-1">Due Return Date <SortIcon field="due_return_date" /></div>
+              </TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredBooks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                   No books found.
                 </TableCell>
               </TableRow>
@@ -138,12 +151,24 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
                   <TableCell>{book.genre}</TableCell>
                   <TableCell>{book.year}</TableCell>
                   <TableCell>
-                    <Badge variant={book.status === "Available" ? "default" : "secondary"} className={book.status === "Available" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : "bg-amber-600 hover:bg-amber-700 text-white"}>
-                      {book.status}
+                    <Badge
+                      variant={book.status === "Available" && !book.is_overdue ? "default" : "secondary"}
+                      className={
+                        book.is_overdue
+                          ? "bg-red-600 hover:bg-red-700 text-white"
+                          : book.status === "Available"
+                            ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                            : "bg-amber-600 hover:bg-amber-700 text-white"
+                      }
+                    >
+                      {book.is_overdue ? "Overdue" : book.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {book.borrowed_date || "-"}
+                  </TableCell>
+                  <TableCell className={book.is_overdue ? "text-red-600 font-medium text-sm" : "text-muted-foreground text-sm"}>
+                    {book.due_return_date || "-"}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
