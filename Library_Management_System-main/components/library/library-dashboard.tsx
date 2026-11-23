@@ -368,7 +368,9 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
             {isLoading ? (
               <div className="flex h-64 items-center justify-center rounded-xl border border-emerald-100 bg-white text-muted-foreground">Loading transactions...</div>
             ) : (
-              <TransactionPanel books={books} patrons={patrons} onBorrow={handleBorrow} onReturn={handleReturn} />
+              <div className="page-transition">
+                <TransactionPanel books={books} patrons={patrons} onBorrow={handleBorrow} onReturn={handleReturn} />
+              </div>
             )}
           </section>
         )}
