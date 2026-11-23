@@ -149,7 +149,7 @@ export function BookTable({ books, onEdit, onDelete }: BookTableProps) {
               <TableHead className="cursor-pointer" onClick={() => handleSort("status")}>
                 <div className="flex items-center gap-1">Status <SortIcon field="status" /></div>
               </TableHead>
-              <TableHead>Borrowed Date &amp; Time (PHT)</TableHead>
+              <TableHead>Borrowed Date &amp; Time</TableHead>
               <TableHead className="cursor-pointer" onClick={() => handleSort("due_return_date")}>
                 <div className="flex items-center gap-1">Due Return Date <SortIcon field="due_return_date" /></div>
               </TableHead>

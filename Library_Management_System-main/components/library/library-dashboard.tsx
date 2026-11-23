@@ -77,10 +77,13 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
       body: JSON.stringify(data),
     })
     const result = await readApiResponse(res)
+    const isDuplicate = !result.success && res.status === 409
     toast({
-      title: result.success ? "Success" : "Error",
+      title: result.success ? "Success" : isDuplicate ? "Oops! Book already exists" : "Error",
       description: result.message,
       variant: result.success ? "default" : "destructive",
+      className: isDuplicate
+        ? "border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-100" : undefined,
     })
     if (result.success) refreshData()
     return result.success
@@ -122,10 +125,13 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
       body: JSON.stringify(data),
     })
     const result = await res.json()
+    const isDuplicate = !result.success && res.status === 409
     toast({
-      title: result.success ? "Success" : "Error",
+      title: result.success ? "Success" : isDuplicate ? "Oops! Patron already exists" : "Error",
       description: result.message,
       variant: result.success ? "default" : "destructive",
+      className: isDuplicate
+        ? "border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-100" : undefined,
     })
     if (result.success) refreshData()
     return result.success
