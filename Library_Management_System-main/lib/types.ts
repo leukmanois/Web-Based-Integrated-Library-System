@@ -20,4 +20,6 @@ export interface LibraryStats {
   checked_out_books: number
   total_patrons: number
   active_patrons: number
+  recent_book: Pick<Book, "id" | "title" | "author" | "genre" | "year"> | null
+  most_borrowed_book: (Pick<Book, "id" | "title" | "author" | "genre" | "year"> & { borrow_count: number }) | null
 }

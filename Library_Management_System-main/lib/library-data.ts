@@ -134,15 +134,21 @@ export async function borrowBook(bookId: number, patronId: number): Promise<{ su
 
   const borrowedDate = new Date().toISOString().replace("T", " ").slice(0, 19)
   const dueDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-  await sql`
-    UPDATE books
-    SET status = 'Checked Out', borrowed_date = ${borrowedDate}
-    WHERE id = ${bookId}
-  `
-  await sql`
+  const loan = await sql`
+    WITH updated_book AS (
+      UPDATE books
+      SET status = 'Checked Out',
+          borrowed_date = ${borrowedDate},
+          borrow_count = borrow_count + 1
+      WHERE id = ${bookId} AND status = 'Available'
+      RETURNING id
+    )
     INSERT INTO loans (patron_id, book_id, borrowed_date, due_return_date)
-    VALUES (${patronId}, ${bookId}, ${borrowedDate}, ${dueDate})
+    SELECT ${patronId}, id, ${borrowedDate}, ${dueDate}
+    FROM updated_book
+    RETURNING book_id
   `
+  if (loan.length === 0) return { success: false, message: `Book "${book.title}" is currently checked out.` }
   return { success: true, message: `Book "${book.title}" borrowed successfully by ${patron.name}.` }
 }
 
@@ -162,19 +168,53 @@ export async function returnBook(bookId: number, patronId: number): Promise<{ su
 
 export async function getStatistics(): Promise<LibraryStats> {
   await ensureDatabaseSchema()
-  const [stats] = await sql`
+  const [[stats], [recentBook], [mostBorrowedBook]] = await Promise.all([
+    sql`
     SELECT
       (SELECT COUNT(*)::int FROM books) AS total_books,
       (SELECT COUNT(*)::int FROM books WHERE status = 'Available') AS available_books,
       (SELECT COUNT(*)::int FROM patrons) AS total_patrons,
       (SELECT COUNT(DISTINCT patron_id)::int FROM loans) AS active_patrons
-  `
+    `,
+    sql`
+      SELECT id, title, author, genre, year
+      FROM books
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+    `,
+    sql`
+      SELECT id, title, author, genre, year, borrow_count
+      FROM books
+      WHERE borrow_count > 0
+      ORDER BY borrow_count DESC, id ASC
+      LIMIT 1
+    `,
+  ])
   return {
     total_books: stats.total_books,
     available_books: stats.available_books,
     checked_out_books: stats.total_books - stats.available_books,
     total_patrons: stats.total_patrons,
     active_patrons: stats.active_patrons,
+    recent_book: recentBook
+      ? {
+          id: recentBook.id,
+          title: recentBook.title,
+          author: recentBook.author,
+          genre: recentBook.genre,
+          year: recentBook.year,
+        }
+      : null,
+    most_borrowed_book: mostBorrowedBook
+      ? {
+          id: mostBorrowedBook.id,
+          title: mostBorrowedBook.title,
+          author: mostBorrowedBook.author,
+          genre: mostBorrowedBook.genre,
+          year: mostBorrowedBook.year,
+          borrow_count: mostBorrowedBook.borrow_count,
+        }
+      : null,
   }
 }
 
