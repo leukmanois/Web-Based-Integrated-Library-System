@@ -4,29 +4,53 @@ import { ensureDatabaseSchema, sql } from "./database"
 export async function loadBooks(): Promise<Book[]> {
   await ensureDatabaseSchema()
   const rows = await sql`
-    SELECT id, title, author, genre, year, status, borrowed_date
-    FROM books
-    ORDER BY id
+    SELECT b.id, b.title, b.author, b.genre, b.year, b.status, b.borrowed_date,
+           l.due_return_date
+    FROM books b
+    LEFT JOIN loans l ON l.book_id = b.id
+    ORDER BY b.id
   `
-  return rows.map((row) => ({
-    id: row.id,
-    title: row.title,
-    author: row.author,
-    genre: row.genre || "Uncategorized",
-    year: row.year,
-    status: row.status,
-    borrowed_date: row.borrowed_date,
-  })) as Book[]
+  return rows.map((row) => {
+    const dueReturnDate = row.due_return_date ? String(row.due_return_date).slice(0, 10) : null
+    const isOverdue =
+      row.status === "Checked Out" &&
+      Boolean(dueReturnDate) &&
+      dueReturnDate! < new Date().toISOString().slice(0, 10)
+    return {
+      id: row.id,
+      title: row.title,
+      author: row.author,
+      genre: row.genre || "Uncategorized",
+      year: row.year,
+      status: row.status,
+      borrowed_date: row.borrowed_date,
+      due_return_date: dueReturnDate,
+      is_overdue: isOverdue,
+    }
+  }) as Book[]
 }
 
 export async function getBookById(id: number): Promise<Book | undefined> {
   await ensureDatabaseSchema()
   const rows = await sql`
-    SELECT id, title, author, genre, year, status, borrowed_date
-    FROM books
-    WHERE id = ${id}
+    SELECT b.id, b.title, b.author, b.genre, b.year, b.status, b.borrowed_date,
+           l.due_return_date
+    FROM books b
+    LEFT JOIN loans l ON l.book_id = b.id
+    WHERE b.id = ${id}
   `
-  return rows[0] as Book | undefined
+  const row = rows[0]
+  if (!row) return undefined
+  const dueReturnDate = row.due_return_date ? String(row.due_return_date).slice(0, 10) : null
+  return {
+    ...row,
+    borrowed_date: row.borrowed_date,
+    due_return_date: dueReturnDate,
+    is_overdue:
+      row.status === "Checked Out" &&
+      Boolean(dueReturnDate) &&
+      dueReturnDate! < new Date().toISOString().slice(0, 10),
+  } as Book
 }
 
 export async function addBook(id: number, title: string, author: string, year: number, genre: string): Promise<{ success: boolean; message: string; book?: Book }> {
@@ -124,8 +148,11 @@ export async function deletePatron(id: number): Promise<{ success: boolean; mess
   return { success: true, message: `Patron "${patron.name}" deleted successfully.` }
 }
 
-export async function borrowBook(bookId: number, patronId: number): Promise<{ success: boolean; message: string }> {
+export async function borrowBook(bookId: number, patronId: number, durationDays = 14): Promise<{ success: boolean; message: string }> {
   await ensureDatabaseSchema()
+  if (!Number.isInteger(durationDays) || durationDays < 1) {
+    return { success: false, message: "Borrowing duration must be a positive whole number of days." }
+  }
   const [book] = await sql`SELECT title, status FROM books WHERE id = ${bookId}`
   if (!book) return { success: false, message: `Book with ID ${bookId} not found.` }
   const [patron] = await sql`SELECT name FROM patrons WHERE id = ${patronId}`
@@ -133,7 +160,7 @@ export async function borrowBook(bookId: number, patronId: number): Promise<{ su
   if (book.status === "Checked Out") return { success: false, message: `Book "${book.title}" is currently checked out.` }
 
   const borrowedDate = new Date().toISOString().replace("T", " ").slice(0, 19)
-  const dueDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  const dueDate = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
   const loan = await sql`
     WITH updated_book AS (
       UPDATE books
@@ -220,15 +247,16 @@ export async function getStatistics(): Promise<LibraryStats> {
 
 export async function exportBooksToCSV(): Promise<string> {
   const books = await loadBooks()
-  const headers = ["ID", "Title", "Author", "Genre", "Year", "Status", "Borrowed Date"]
+  const headers = ["ID", "Title", "Author", "Genre", "Year", "Status", "Borrowed Date", "Due Return Date"]
   const rows = books.map((book) => [
     book.id,
     `"${book.title}"`,
     `"${book.author}"`,
     `"${book.genre}"`,
     book.year,
-    book.status,
+    book.is_overdue ? "Overdue" : book.status,
     book.borrowed_date || "N/A",
+    book.due_return_date || "N/A",
   ])
   return [headers.join(","), ...rows.map((row) => row.join(","))].join("\n")
 }
