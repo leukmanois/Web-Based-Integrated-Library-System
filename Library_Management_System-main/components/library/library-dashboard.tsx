@@ -19,6 +19,7 @@ import { LibraryNavigation } from "./library-navigation"
 import { BookOpen, Download, Plus, TrendingUp } from "lucide-react"
 import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { OrcaLoader } from "@/components/ui/orca-loader"
 
 export type LibraryPage = "home" | "books" | "patrons" | "transactions"
 
@@ -62,7 +63,7 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
   const { data: patronsData, isLoading: patronsLoading } = useSWR<Patron[]>("/api/patrons", fetcher)
   const books = Array.isArray(booksData) ? booksData : []
   const patrons = Array.isArray(patronsData) ? patronsData : []
-  const { data: stats } = useSWR<LibraryStats>("/api/stats", fetcher)
+  const { data: stats, isLoading: statsLoading } = useSWR<LibraryStats>("/api/stats", fetcher)
   
   // Form states
   const [bookFormOpen, setBookFormOpen] = useState(false)
@@ -260,66 +261,66 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
               <p className="text-sm font-medium text-emerald-700">Dashboard</p>
               <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Library overview</h2>
             </div>
-            {stats ? <StatsCards stats={stats} /> : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {[0, 1, 2, 3].map((item) => (
-                  <div key={item} className="h-32 animate-pulse rounded-xl border border-emerald-100 bg-emerald-50/40" />
-                ))}
+            {isLoading || statsLoading ? (
+              <div className="flex min-h-64 items-center justify-center">
+                <OrcaLoader />
               </div>
-            )}
-            {stats && (
-              <div className="mt-6 grid gap-4 lg:grid-cols-2">
-                <Card className="border-emerald-100 shadow-sm">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                    <CardTitle className="text-sm font-medium">Most Recently Added</CardTitle>
-                    <span className="rounded-lg bg-emerald-50 p-2 text-emerald-700">
-                      <BookOpen className="h-4 w-4" />
-                    </span>
-                  </CardHeader>
-                  <CardContent>
-                    {stats.recent_book ? (
-                      <div className="flex items-center gap-4">
-                        <BookCover src={stats.recent_book.cover_image} title={stats.recent_book.title} className="h-28 w-20" />
-                        <div className="min-w-0">
-                          <p className="truncate text-lg font-semibold text-slate-900">{stats.recent_book.title}</p>
-                          <p className="mt-1 truncate text-sm text-muted-foreground">{stats.recent_book.author}</p>
-                          <p className="mt-3 text-xs text-emerald-700">
-                            {stats.recent_book.genre} · {stats.recent_book.year} · ID {stats.recent_book.id}
-                          </p>
+            ) : stats ? (
+              <>
+                <StatsCards stats={stats} />
+                <div className="mt-6 grid gap-4 lg:grid-cols-2">
+                  <Card className="border-emerald-100 shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                      <CardTitle className="text-sm font-medium">Most Recently Added</CardTitle>
+                      <span className="rounded-lg bg-emerald-50 p-2 text-emerald-700">
+                        <BookOpen className="h-4 w-4" />
+                      </span>
+                    </CardHeader>
+                    <CardContent>
+                      {stats.recent_book ? (
+                        <div className="flex items-center gap-4">
+                          <BookCover src={stats.recent_book.cover_image} title={stats.recent_book.title} className="h-28 w-20" />
+                          <div className="min-w-0">
+                            <p className="truncate text-lg font-semibold text-slate-900">{stats.recent_book.title}</p>
+                            <p className="mt-1 truncate text-sm text-muted-foreground">{stats.recent_book.author}</p>
+                            <p className="mt-3 text-xs text-emerald-700">
+                              {stats.recent_book.genre} · {stats.recent_book.year} · ID {stats.recent_book.id}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <p className="py-2 text-sm text-muted-foreground">No books have been added yet.</p>
-                    )}
-                  </CardContent>
-                </Card>
+                      ) : (
+                        <p className="py-2 text-sm text-muted-foreground">No books have been added yet.</p>
+                      )}
+                    </CardContent>
+                  </Card>
 
-                <Card className="border-emerald-100 shadow-sm">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-                    <CardTitle className="text-sm font-medium">Most Borrowed Book</CardTitle>
-                    <span className="rounded-lg bg-emerald-50 p-2 text-emerald-700">
-                      <TrendingUp className="h-4 w-4" />
-                    </span>
-                  </CardHeader>
-                  <CardContent>
-                    {stats.most_borrowed_book ? (
-                      <div className="flex items-center gap-4">
-                        <BookCover src={stats.most_borrowed_book.cover_image} title={stats.most_borrowed_book.title} className="h-28 w-20" />
-                        <div className="min-w-0">
-                          <p className="truncate text-lg font-semibold text-slate-900">{stats.most_borrowed_book.title}</p>
-                          <p className="mt-1 truncate text-sm text-muted-foreground">{stats.most_borrowed_book.author}</p>
-                          <p className="mt-3 text-xs text-emerald-700">
-                            {stats.most_borrowed_book.borrow_count} checkout{stats.most_borrowed_book.borrow_count === 1 ? "" : "s"} recorded · ID {stats.most_borrowed_book.id}
-                          </p>
+                  <Card className="border-emerald-100 shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                      <CardTitle className="text-sm font-medium">Most Borrowed Book</CardTitle>
+                      <span className="rounded-lg bg-emerald-50 p-2 text-emerald-700">
+                        <TrendingUp className="h-4 w-4" />
+                      </span>
+                    </CardHeader>
+                    <CardContent>
+                      {stats.most_borrowed_book ? (
+                        <div className="flex items-center gap-4">
+                          <BookCover src={stats.most_borrowed_book.cover_image} title={stats.most_borrowed_book.title} className="h-28 w-20" />
+                          <div className="min-w-0">
+                            <p className="truncate text-lg font-semibold text-slate-900">{stats.most_borrowed_book.title}</p>
+                            <p className="mt-1 truncate text-sm text-muted-foreground">{stats.most_borrowed_book.author}</p>
+                            <p className="mt-3 text-xs text-emerald-700">
+                              {stats.most_borrowed_book.borrow_count} checkout{stats.most_borrowed_book.borrow_count === 1 ? "" : "s"} recorded · ID {stats.most_borrowed_book.id}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <p className="py-2 text-sm text-muted-foreground">No book checkouts have been recorded yet.</p>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+                      ) : (
+                        <p className="py-2 text-sm text-muted-foreground">No book checkouts have been recorded yet.</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            ) : null}
           </section>
         )}
 
@@ -342,12 +343,8 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
               </div>
             </div>
             {isLoading ? (
-              <div
-                className="flex h-64 items-center justify-center rounded-xl border border-emerald-100 bg-white"
-                role="status"
-                aria-label="Loading books"
-              >
-                <div className="loader" aria-hidden="true" />
+              <div className="flex h-64 items-center justify-center rounded-xl border border-emerald-100 bg-white">
+                <OrcaLoader />
               </div>
             ) : (
               <BookTable books={books} onEdit={openEditBook} onDelete={(book) => setDeleteBookConfirm(book)} />
@@ -374,7 +371,9 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
               </div>
             </div>
             {isLoading ? (
-              <div className="flex h-64 items-center justify-center rounded-xl border border-emerald-100 bg-white text-muted-foreground">Loading patrons...</div>
+              <div className="flex h-64 items-center justify-center rounded-xl border border-emerald-100 bg-white">
+                <OrcaLoader />
+              </div>
             ) : (
               <PatronTable patrons={patrons} books={books} onEdit={openEditPatron} onDelete={(patron) => setDeletePatronConfirm(patron)} />
             )}
@@ -388,7 +387,9 @@ export function LibraryDashboard({ page }: { page: LibraryPage }) {
               <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Transactions</h2>
             </div>
             {isLoading ? (
-              <div className="flex h-64 items-center justify-center rounded-xl border border-emerald-100 bg-white text-muted-foreground">Loading transactions...</div>
+              <div className="flex h-64 items-center justify-center rounded-xl border border-emerald-100 bg-white">
+                <OrcaLoader />
+              </div>
             ) : (
               <div className="page-transition">
                 <TransactionPanel books={books} patrons={patrons} onBorrow={handleBorrow} onReturn={handleReturn} />
