@@ -47,6 +47,25 @@ export function ensureDatabaseSchema() {
         )
       `
       await sql`
+        CREATE TABLE IF NOT EXISTS transaction_history (
+          id BIGSERIAL PRIMARY KEY,
+          transaction_type TEXT NOT NULL CHECK (transaction_type IN ('arrival', 'removal', 'borrow', 'return', 'patron_add', 'patron_remove')),
+          book_id INTEGER,
+          book_title TEXT,
+          patron_id INTEGER,
+          patron_name TEXT,
+          quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
+          occurred_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `
+      // Migrate installations that already have the original four-type history table.
+      await sql`ALTER TABLE transaction_history DROP CONSTRAINT IF EXISTS transaction_history_transaction_type_check`
+      await sql`ALTER TABLE transaction_history ADD CONSTRAINT transaction_history_transaction_type_check CHECK (transaction_type IN ('arrival', 'removal', 'borrow', 'return', 'patron_add', 'patron_remove'))`
+      await sql`ALTER TABLE transaction_history ALTER COLUMN book_id DROP NOT NULL`
+      await sql`ALTER TABLE transaction_history ALTER COLUMN book_title DROP NOT NULL`
+      await sql`CREATE INDEX IF NOT EXISTS transaction_history_occurred_at_idx ON transaction_history (occurred_at DESC)`
+      await sql`CREATE INDEX IF NOT EXISTS transaction_history_patron_name_idx ON transaction_history (LOWER(patron_name))`
+      await sql`
         CREATE TABLE IF NOT EXISTS loans (
           patron_id INTEGER NOT NULL REFERENCES patrons(id) ON DELETE RESTRICT,
           book_id INTEGER NOT NULL REFERENCES books(id) ON DELETE RESTRICT,
