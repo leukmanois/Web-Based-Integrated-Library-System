@@ -71,6 +71,7 @@ export async function addBook(id: number, title: string, author: string, year: n
     VALUES (${id}, ${title}, ${author}, ${genre}, ${year}, 'Available', NULL, ${coverImageKey ?? null})
     RETURNING id, title, author, genre, year, status, borrowed_date
   `
+  await sql`INSERT INTO transaction_history (transaction_type, book_id, book_title) VALUES ('arrival', ${id}, ${title})`
   return { success: true, message: `Book "${title}" added successfully with ID ${id}.`, book: book as Book }
 }
 
@@ -101,6 +102,7 @@ export async function deleteBook(id: number): Promise<{ success: boolean; messag
   const [book] = await sql`SELECT title, status FROM books WHERE id = ${id}`
   if (!book) return { success: false, message: `Book with ID ${id} not found.` }
   if (book.status === "Checked Out") return { success: false, message: `Cannot delete book "${book.title}" - it is currently checked out.` }
+  await sql`INSERT INTO transaction_history (transaction_type, book_id, book_title) VALUES ('removal', ${id}, ${book.title})`
   await sql`DELETE FROM loans WHERE book_id = ${id}`
   await sql`DELETE FROM books WHERE id = ${id}`
   return { success: true, message: `Book "${book.title}" deleted successfully.` }
@@ -134,6 +136,10 @@ export async function addPatron(id: number, name: string): Promise<{ success: bo
     return { success: false, message: `Patron ID ${id} is already in use.` }
   }
   await sql`INSERT INTO patrons (id, name) VALUES (${id}, ${name})`
+  await sql`
+    INSERT INTO transaction_history (transaction_type, patron_id, patron_name)
+    VALUES ('patron_add', ${id}, ${name})
+  `
   return { success: true, message: `Patron "${name}" added successfully with ID ${id}.`, patron: { id, name, books_checked_out: [] } }
 }
 
@@ -156,6 +162,10 @@ export async function deletePatron(id: number): Promise<{ success: boolean; mess
   if (!patron) return { success: false, message: `Patron with ID ${id} not found.` }
   if (patron.loan_count > 0) return { success: false, message: `Cannot delete patron "${patron.name}" - they have ${patron.loan_count} book(s) checked out.` }
   await sql`DELETE FROM patrons WHERE id = ${id}`
+  await sql`
+    INSERT INTO transaction_history (transaction_type, patron_id, patron_name)
+    VALUES ('patron_remove', ${id}, ${patron.name})
+  `
   return { success: true, message: `Patron "${patron.name}" deleted successfully.` }
 }
 
@@ -187,6 +197,7 @@ export async function borrowBook(bookId: number, patronId: number, durationDays 
     RETURNING book_id
   `
   if (loan.length === 0) return { success: false, message: `Book "${book.title}" is currently checked out.` }
+  await sql`INSERT INTO transaction_history (transaction_type, book_id, book_title, patron_id, patron_name) VALUES ('borrow', ${bookId}, ${book.title}, ${patronId}, ${patron.name})`
   return { success: true, message: `Book "${book.title}" borrowed successfully by ${patron.name}.` }
 }
 
@@ -201,6 +212,7 @@ export async function returnBook(bookId: number, patronId: number): Promise<{ su
 
   await sql`DELETE FROM loans WHERE patron_id = ${patronId} AND book_id = ${bookId}`
   await sql`UPDATE books SET status = 'Available', borrowed_date = NULL WHERE id = ${bookId}`
+  await sql`INSERT INTO transaction_history (transaction_type, book_id, book_title, patron_id, patron_name) VALUES ('return', ${bookId}, ${book.title}, ${patronId}, ${patron.name})`
   return { success: true, message: `Book "${book.title}" returned successfully by ${patron.name}.` }
 }
 
@@ -281,4 +293,26 @@ export async function exportPatronsToCSV(): Promise<string> {
   const headers = ["ID", "Name", "Books Checked Out"]
   const rows = patrons.map((patron) => [patron.id, `"${patron.name}"`, patron.books_checked_out.length])
   return [headers.join(","), ...rows.map((row) => row.join(","))].join("\n")
+}
+
+
+export interface TransactionHistoryEntry {
+  id: number
+  transaction_type: "arrival" | "removal" | "borrow" | "return" | "patron_add" | "patron_remove"
+  book_id: number | null
+  book_title: string | null
+  patron_id: number | null
+  patron_name: string | null
+  quantity: number
+  occurred_at: string
+}
+
+export async function loadTransactionHistory(): Promise<TransactionHistoryEntry[]> {
+  await ensureDatabaseSchema()
+  const rows = await sql`
+    SELECT id, transaction_type, book_id, book_title, patron_id, patron_name, quantity, occurred_at
+    FROM transaction_history
+    ORDER BY occurred_at DESC, id DESC
+  `
+  return rows as TransactionHistoryEntry[]
 }
